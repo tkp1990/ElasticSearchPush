@@ -1,8 +1,13 @@
 package mongoToEs
 
+import java.net.InetAddress
+
 import com.mongodb.casbah.Imports._
 import org.elasticsearch.client.Client
-import org.elasticsearch.node.NodeBuilder
+import org.elasticsearch.client.transport.TransportClient
+import org.elasticsearch.common.settings.Settings
+import org.elasticsearch.common.transport.InetSocketTransportAddress
+import org.elasticsearch.node.NodeBuilder._
 import org.elasticsearch.common.xcontent.XContentFactory._
 import play.api.libs.json.{JsValue, Json, JsObject}
 ;
@@ -12,29 +17,32 @@ import play.api.libs.json.{JsValue, Json, JsObject}
  */
 class EsJavaApi {
 
-  val INDEX = "supplier"
+  val INDEX = "supplier1"
 
   def getData() = {
     val finalCount = 52982819
     var skip = 0
-    val limit = 5000
+    val limit = 6000
     while (finalCount >= skip ) {
+      println(" Count: "+skip)
       val mongoClient = getMongoClient("localhost", 27017)
       val (collection, mdbClient) = getCollection("datacleaning", "ZPmainCollection", mongoClient)
       try {
         val data = collection.find().skip(skip).limit(limit)
         skip = skip + limit
         var jsonList: List[JsObject] = List[JsObject]()
+        var jsList: List[JsValue] = List[JsValue]()
         for(x <- data) {
           val json = Json.parse(x.toString);
           val supplier = (json \ "value").as[JsValue]
-          val jObj = Json.obj("data" -> supplier)
+          //val jObj = Json.obj("data" -> supplier)
           //println(json.toString())
-          jsonList = jObj :: jsonList
+          //jsonList = jObj :: jsonList
+          jsList = supplier :: jsList
         }
         val client = getClient(INDEX)
         try{
-          bulkInsert(jsonList, client)
+          bulkInsert(jsList, client)
         } catch {
           case e: Exception => e.printStackTrace()
         } finally {
@@ -49,10 +57,18 @@ class EsJavaApi {
   }
 
   def getClient(index: String): Client = {
-    val client = NodeBuilder.nodeBuilder()
+    val settings = Settings.settingsBuilder()
+      .put("path.home", "/usr/share/elasticsearch")
+      .put("cluster.name", "elasticsearch")
+      .put("action.bulk.compress", true)
+      .build();
+    //val node = nodeBuilder().local(true).settings(settings).node();
+    val client = TransportClient.builder().settings(settings).build();
+    client.addTransportAddresses(new InetSocketTransportAddress(InetAddress.getByName("localhost"),9300))
+    /*val client = NodeBuilder.nodeBuilder()
       .client(true)
       .node()
-      .client();
+      .client();*/
     val indexExists = client.admin().indices().prepareExists(index).execute().actionGet().isExists();
     if (!indexExists) {
       client.admin().indices().prepareCreate(index).execute().actionGet();
@@ -60,11 +76,11 @@ class EsJavaApi {
     client
   }
 
-  def bulkInsert(jsonList: List[JsObject], client: Client): Unit ={
+  def bulkInsert(jsonList: List[JsValue], client: Client): Unit ={
     val bulkRequest = client.prepareBulk();
     for (x <- jsonList) {
       bulkRequest.add(client.prepareIndex(INDEX, "data")
-        .setSource(x)
+        .setSource(jsonBuilder().startObject().field("data", x).endObject())
       );
     }
     val bulkResponse = bulkRequest.execute().actionGet();
