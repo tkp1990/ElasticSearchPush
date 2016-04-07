@@ -19,36 +19,20 @@ import play.api.libs.json._
  */
 class EsJavaApi {
 
-  val INDEX = "supplier2"
-  implicit val idReads: Reads[ObjectId] = new Reads[ObjectId] {
-    override def reads(json: JsValue): JsResult[Imports.ObjectId] = {
-      /*val s = json.as[String]
-      println("inside Reads "+s)
-      if (org.bson.types.ObjectId.isValid(s)) JsSuccess(new ObjectId(s)) else JsError("Not a valid ObjectId: " + s)*/
-      json.asOpt[String] map { str =>
-        if (org.bson.types.ObjectId.isValid(str))
-          JsSuccess(new ObjectId(str))
-        else
-          JsError("Invalid ObjectId %s".format(str))
-      } getOrElse (JsError("Value is not an ObjectId"))
-    }
-  }
-  implicit val idWrites = new Writes[ObjectId] {
-    def writes(oId: ObjectId): JsValue = {
-      JsString(oId.toString)
-    }
-  }
+
+  val INDEX = "supplier1"g
 
   def getData() = {
     val finalCount = 52982819
     var skip, c = 0
     val limit = 7000
     var last_id = ""
+
     while (finalCount >= skip ) {
       println(" Count: "+skip)
       val orderBy = MongoDBObject("_id" -> 1)
       val mongoClient = getMongoClient("localhost", 27017)
-      val (collection, mdbClient) = getCollection("datacleaning", "ZPmainCollection", mongoClient)
+      val (collection, mdbClient) = getCollection("myDb", "myCollection1", mongoClient)
       try {
         var jsonList: List[JsObject] = List[JsObject]()
         var jsList: List[JsValue] = List[JsValue]()
@@ -83,6 +67,7 @@ class EsJavaApi {
           for(x <- data) {
             val json = Json.parse(x.toString);
             last_id = (json \ "_id" ).as[String].trim
+
             val supplier = (json \ "value").as[JsValue]
             //val jObj = Json.obj("data" -> supplier)
             //println(json.toString())
@@ -113,7 +98,7 @@ class EsJavaApi {
   def getClient(index: String): Client = {
     val settings = Settings.settingsBuilder()
       .put("path.home", "/usr/share/elasticsearch")
-      .put("cluster.name", "elasticsearch")
+      .put("cluster.name", "elasticsearch_kenneththomas")
       .put("action.bulk.compress", true)
       .build();
     //val node = nodeBuilder().local(true).settings(settings).node();
