@@ -20,7 +20,7 @@ import play.api.libs.json._
 class EsJavaApi {
 
 
-  val INDEX = "supplier1"g
+  val INDEX = "supplier1"
 
   def getData() = {
     val finalCount = 52982819
@@ -32,7 +32,7 @@ class EsJavaApi {
       println(" Count: "+skip)
       val orderBy = MongoDBObject("_id" -> 1)
       val mongoClient = getMongoClient("localhost", 27017)
-      val (collection, mdbClient) = getCollection("myDb", "myCollection1", mongoClient)
+      val (collection, mdbClient) = getCollection("datacleaning", "ZPmainCollection", mongoClient)
       try {
         var jsonList: List[JsObject] = List[JsObject]()
         var jsList: List[JsValue] = List[JsValue]()

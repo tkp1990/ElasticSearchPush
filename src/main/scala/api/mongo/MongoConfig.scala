@@ -5,7 +5,7 @@ import com.mongodb.casbah.Imports._
 /**
  * Created by kenneththomas on 4/6/16.
  */
-class MongoConfig {
+object MongoConfig {
 
 
   /**

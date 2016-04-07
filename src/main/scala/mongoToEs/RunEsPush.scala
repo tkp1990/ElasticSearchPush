@@ -5,7 +5,7 @@ package mongoToEs
  */
 object RunEsPush {
   def main(args: Array[String]) {
-    val obj = new EsJavaApi()
+    val obj = new PushPartialData()
     try{
       println("Application Start")
       obj.getData()
