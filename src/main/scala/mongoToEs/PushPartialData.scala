@@ -15,7 +15,7 @@ class PushPartialData {
   val INDEX = "supplier2"
   val SUB_INDEX = "data"
   val HOME_PATH = """/usr/share/elasticsearch"""
-  val CLUSTER_NAME = """elasticsearch"""
+  val CLUSTER_NAME = "elasticsearch"
 
   def getData() = {
     val finalCount = 52982819
@@ -26,7 +26,7 @@ class PushPartialData {
     while (finalCount >= skip ) {
       val mongoClient = MongoConfig.getMongoClient("localhost", 27017)
       try {
-        val collection = MongoConfig.getCollection("myDb", "myCollection1", mongoClient)
+        val collection = MongoConfig.getCollection("datacleaning", "ZPmainCollection", mongoClient)
         if(skip == c) {
           val data = collection.find().skip(skip).limit(limit).sort(orderBy)
           skip = skip + limit
@@ -57,14 +57,14 @@ class PushPartialData {
       last_id = (json \ "_id" ).as[String].trim
       //println("id" + last_id)
       val suppData = (json \ "value").as[JsValue]
-      val supName = (suppData \ "").as[String]
-      val supAddr = (suppData \ "").as[String]
-      val conName = (suppData \ "").as[String]
-      val conAddr = (suppData \ "").as[String]
-      val n1Name = (suppData \ "").as[String]
-      val n1Addr = (suppData \ "").as[String]
-      val n2Name = (suppData \ "").as[String]
-      val n2Addr = (suppData \ "").as[String]
+      val supName = (suppData \ "supname").as[String]
+      val supAddr = (suppData \ "supaddr").as[String]
+      val conName = (suppData \ "conname").as[String]
+      val conAddr = (suppData \ "conaddr").as[String]
+      val n1Name = (suppData \ "n1name").as[String]
+      val n1Addr = (suppData \ "n1addr").as[String]
+      val n2Name = (suppData \ "n2name").as[String]
+      val n2Addr = (suppData \ "n2addr").as[String]
       val obj = Json.obj("id" -> last_id, "supname" -> supName, "supAddr" -> supAddr, "conname" -> conName, "conAddr" -> conAddr,
         "n1name" -> n1Name, "n1Addr" -> n1Addr, "n2name" -> n2Name, "n2Addr" -> n2Addr)
       jsList = obj :: jsList
