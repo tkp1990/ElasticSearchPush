@@ -43,6 +43,7 @@ class EsJavaApi {
     val finalCount = 52982819
     var skip, c = 0
     val limit = 7000
+    var last_id = ""
     while (finalCount >= skip ) {
       println(" Count: "+skip)
       val orderBy = MongoDBObject("_id" -> 1)
@@ -51,7 +52,6 @@ class EsJavaApi {
       try {
         var jsonList: List[JsObject] = List[JsObject]()
         var jsList: List[JsValue] = List[JsValue]()
-        var last_id = ""
         if(skip == c){
           val data = collection.find().skip(skip).limit(limit).sort(orderBy)
           skip = skip + limit
