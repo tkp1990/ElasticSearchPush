@@ -13,7 +13,6 @@ import play.api.libs.json.{JsObject, JsValue}
  */
 object ElasticsearchConfig {
 
-
   /**
    *
    * @param index - ElasticSearch index (if does not exists creates a new index)
@@ -27,13 +26,8 @@ object ElasticsearchConfig {
       .put("cluster.name", clusterName)
       .put("action.bulk.compress", true)
       .build();
-    //val node = nodeBuilder().local(true).settings(settings).node();
     val client = TransportClient.builder().settings(settings).build();
     client.addTransportAddresses(new InetSocketTransportAddress(InetAddress.getByName("localhost"),9300))
-    /*val client = NodeBuilder.nodeBuilder()
-      .client(true)
-      .node()
-      .client();*/
     val indexExists = client.admin().indices().prepareExists(index).execute().actionGet().isExists();
     if (!indexExists) {
       client.admin().indices().prepareCreate(index).execute().actionGet();

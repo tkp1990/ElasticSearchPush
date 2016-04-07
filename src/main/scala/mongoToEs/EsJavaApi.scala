@@ -98,7 +98,7 @@ class EsJavaApi {
   def getClient(index: String): Client = {
     val settings = Settings.settingsBuilder()
       .put("path.home", "/usr/share/elasticsearch")
-      .put("cluster.name", "elasticsearch_kenneththomas")
+      .put("cluster.name", "elasticsearch")
       .put("action.bulk.compress", true)
       .build();
     //val node = nodeBuilder().local(true).settings(settings).node();
