@@ -22,9 +22,6 @@ class EsJavaApi {
   val INDEX = "supplier2"
   implicit val idReads: Reads[ObjectId] = new Reads[ObjectId] {
     override def reads(json: JsValue): JsResult[Imports.ObjectId] = {
-      /*val s = json.as[String]
-      println("inside Reads "+s)
-      if (org.bson.types.ObjectId.isValid(s)) JsSuccess(new ObjectId(s)) else JsError("Not a valid ObjectId: " + s)*/
       json.asOpt[String] map { str =>
         if (org.bson.types.ObjectId.isValid(str))
           JsSuccess(new ObjectId(str))
@@ -41,8 +38,8 @@ class EsJavaApi {
 
   def getData() = {
     val finalCount = 52982819
-    var skip, c = 0
-    val limit = 7000
+    var skip, c = 25562000
+    val limit = 10000
     var last_id = ""
     while (finalCount >= skip ) {
       println(" Count: "+skip)
