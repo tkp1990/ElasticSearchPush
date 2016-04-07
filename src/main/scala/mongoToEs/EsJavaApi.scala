@@ -25,7 +25,7 @@ class EsJavaApi {
       /*val s = json.as[String]
       println("inside Reads "+s)
       if (org.bson.types.ObjectId.isValid(s)) JsSuccess(new ObjectId(s)) else JsError("Not a valid ObjectId: " + s)*/
-      (json \ "$oid" ).asOpt[String] map { str =>
+      json.asOpt[String] map { str =>
         if (org.bson.types.ObjectId.isValid(str))
           JsSuccess(new ObjectId(str))
         else
@@ -51,7 +51,7 @@ class EsJavaApi {
       try {
         var jsonList: List[JsObject] = List[JsObject]()
         var jsList: List[JsValue] = List[JsValue]()
-        var last_id = new ObjectId
+        var last_id = ""
         if(skip == c){
           val data = collection.find().skip(skip).limit(limit).sort(orderBy)
           skip = skip + limit
@@ -59,7 +59,7 @@ class EsJavaApi {
           for(x <- data) {
             val json = Json.parse(x.toString);
             println(json)
-            last_id = (json \ "_id" ).as[ObjectId]
+            last_id = (json \ "_id" ).as[String].trim
             println("id" + last_id)
             val supplier = (json \ "value").as[JsValue]
             //val jObj = Json.obj("data" -> supplier)
@@ -82,7 +82,7 @@ class EsJavaApi {
 
           for(x <- data) {
             val json = Json.parse(x.toString);
-            last_id = (json \ "_id" ).as[ObjectId](idReads)
+            last_id = (json \ "_id" ).as[String].trim
             val supplier = (json \ "value").as[JsValue]
             //val jObj = Json.obj("data" -> supplier)
             //println(json.toString())
@@ -113,7 +113,7 @@ class EsJavaApi {
   def getClient(index: String): Client = {
     val settings = Settings.settingsBuilder()
       .put("path.home", "/usr/share/elasticsearch")
-      .put("cluster.name", "elasticsearch_kenneththomas")
+      .put("cluster.name", "elasticsearch")
       .put("action.bulk.compress", true)
       .build();
     //val node = nodeBuilder().local(true).settings(settings).node();
