@@ -33,7 +33,7 @@ class GetZPMainData {
     val finalCount = 10//52982819
     var skip, c = 0
     val limit = 1//10000
-    var lastId = new ObjectId
+    var lastId = String
 
     while (finalCount >= skip ) {
       val mongoClient = MongoConfig.getMongoClient("localhost", 27017)
@@ -61,8 +61,8 @@ class GetZPMainData {
     }
   }
 
-  def processBatch(data: MongoCursor): ObjectId = {
-    //var last_id = new ObjectId
+  def processBatch(data: MongoCursor): String = {
+    var last_id = ""
     val tObj = new Tokenize
     var jsList: List[JsObject] = List[JsObject]()
     for(x <- data) {
@@ -82,12 +82,12 @@ class GetZPMainData {
         val tN2Addr = tObj.tokenizeName((suppData \ "n2addr").as[String])
         val obj = Tokenized(last_id, tSupName, tSupAddr, tConName, tConAddr, tN1Name, tN1Addr, tN2Name, tN2Addr)
         updateMongo(obj)
-        return last_id
+
       } catch {
         case e: Exception => e.printStackTrace()
       }
     }
-    return new ObjectId("")
+    last_id
   }
 
   def updateMongo(obj: Tokenized) = {
@@ -110,7 +110,7 @@ class GetZPMainData {
     }
   }
 
-  case class Tokenized(id: ObjectId, supname: List[String], conname: List[String], n1name: List[String], n2name: List[String],
+  case class Tokenized(id: String, supname: List[String], conname: List[String], n1name: List[String], n2name: List[String],
                        supaddr: List[String], conaddr: List[String], n1addr: List[String], n2addr: List[String])
 
 
