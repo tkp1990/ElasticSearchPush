@@ -69,7 +69,7 @@ class GetZPMainData {
       try{
         val json = Json.parse(x.toString);
         //println(json)
-        val last_id = (json \ "_id" ).as[String]
+        last_id = (json \ "_id" ).as[String].trim
         //println("id" + last_id)
         val suppData = (json \ "value").as[JsValue]
         val tSupName = tObj.tokenizeName((suppData \ "supname").as[String])
