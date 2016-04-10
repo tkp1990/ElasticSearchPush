@@ -95,10 +95,11 @@ class GetZPMainData {
     val mongoClient = MongoConfig.getMongoClient("localhost", 27017)
     try{
       val collection = MongoConfig.getCollection("datacleaning", "ZPmainCollection", mongoClient)
-      val mObj = MongoDBObject("supname" -> MongoDBList(obj.supname), "supaddr" -> MongoDBList(obj.supaddr),
-        "conname" -> MongoDBList(obj.supname), "conaddr" -> MongoDBList(obj.supaddr),
-        "n1name" -> MongoDBList(obj.supname), "n1addr" -> MongoDBList(obj.supaddr),
-        "n2name" -> MongoDBList(obj.supname), "n2addr" -> MongoDBList(obj.supaddr))
+      val _mObj = MongoDBObject("supname" -> obj.supname, "supaddr" -> obj.supaddr,
+        "conname" -> obj.supname, "conaddr" -> obj.supaddr,
+        "n1name" -> obj.supname, "n1addr" -> obj.supaddr,
+        "n2name" -> obj.supname, "n2addr" -> obj.supaddr)
+      val mObj = $set ("tokenized" -> _mObj)
       val query = MongoDBObject("_id" -> obj.id)
 
       val a = collection.update(query, mObj)
