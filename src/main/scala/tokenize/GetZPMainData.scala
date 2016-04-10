@@ -30,7 +30,7 @@ class GetZPMainData {
   }
 
   def getData () = {
-    val finalCount = 10//52982819
+    val finalCount = 2//52982819
     var skip, c = 0
     val limit = 1//10000
     var lastId = ""
@@ -43,13 +43,13 @@ class GetZPMainData {
           val data = collection.find().skip(skip).limit(limit).sort(orderBy)
           skip = skip + limit
           lastId = processBatch(data)
-          println(lastId)
+          println("Last Id "+lastId)
         } else {
           val q = "_id" $gt (lastId)
           val data = collection.find(q).limit(limit)
           skip = skip + limit
           lastId = processBatch(data)
-          println("Id: "+lastId)
+          println("Last Id: "+lastId)
         }
       } catch {
         case e: Exception =>
