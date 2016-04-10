@@ -38,7 +38,7 @@ class GetZPMainData {
     while (finalCount >= skip ) {
       val mongoClient = MongoConfig.getMongoClient("localhost", 27017)
       try {
-        val collection = MongoConfig.getCollection("myDb", "myCollection1", mongoClient)
+        val collection = MongoConfig.getCollection("datacleaning", "ZPmainCollection", mongoClient)
         if(skip == c) {
           val data = collection.find().skip(skip).limit(limit).sort(orderBy)
           skip = skip + limit
@@ -64,7 +64,7 @@ class GetZPMainData {
   def processBatch(data: MongoCursor): String = {
     var last_id = ""
     val tObj = new Tokenize
-    var jsList: List[JsObject] = List[JsObject]()
+    //var jsList: List[JsObject] = List[JsObject]()
     for(x <- data) {
       try{
         val json = Json.parse(x.toString);
@@ -94,7 +94,7 @@ class GetZPMainData {
     println(obj)
     val mongoClient = MongoConfig.getMongoClient("localhost", 27017)
     try{
-      val collection = MongoConfig.getCollection("myDb", "myCollection1", mongoClient)
+      val collection = MongoConfig.getCollection("datacleaning", "ZPmainCollection", mongoClient)
       val mObj = MongoDBObject("supname" -> MongoDBList(obj.supname), "supaddr" -> MongoDBList(obj.supaddr),
         "conname" -> MongoDBList(obj.supname), "conaddr" -> MongoDBList(obj.supaddr),
         "n1name" -> MongoDBList(obj.supname), "n1addr" -> MongoDBList(obj.supaddr),
