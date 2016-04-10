@@ -33,7 +33,7 @@ class GetZPMainData {
     val finalCount = 10//52982819
     var skip, c = 0
     val limit = 1//10000
-    var lastId = String
+    var lastId = ""
 
     while (finalCount >= skip ) {
       val mongoClient = MongoConfig.getMongoClient("localhost", 27017)
@@ -69,7 +69,7 @@ class GetZPMainData {
       try{
         val json = Json.parse(x.toString);
         //println(json)
-        val last_id = (json \ "_id" ).as[ObjectId]
+        val last_id = (json \ "_id" ).as[String]
         //println("id" + last_id)
         val suppData = (json \ "value").as[JsValue]
         val tSupName = tObj.tokenizeName((suppData \ "supname").as[String])
