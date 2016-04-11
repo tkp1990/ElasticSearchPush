@@ -19,10 +19,17 @@ import play.api.libs.json._
  */
 class EsJavaApi {
 
-  val INDEX = "supplier2"
+  /*implicit val idReads: Reads[ObjectId] = new Reads[ObjectId] {
+    override def reads(json: JsValue): JsResult[Imports.ObjectId] = {
+      json.asOpt[String] map { str =>*/
+
+  val INDEX = "supplier1"
   implicit val idReads: Reads[ObjectId] = new Reads[ObjectId] {
     override def reads(json: JsValue): JsResult[Imports.ObjectId] = {
-      json.asOpt[String] map { str =>
+      /*val s = json.as[String]
+      println("inside Reads "+s)
+      if (org.bson.types.ObjectId.isValid(s)) JsSuccess(new ObjectId(s)) else JsError("Not a valid ObjectId: " + s)*/
+      (json \ "$oid" ).asOpt[String] map { str =>
         if (org.bson.types.ObjectId.isValid(str))
           JsSuccess(new ObjectId(str))
         else
@@ -37,25 +44,28 @@ class EsJavaApi {
   }
 
   def getData() = {
+
     val finalCount = 52982819
     var skip, c = 25562000
     val limit = 10000
     var last_id = ""
+
     while (finalCount >= skip ) {
       println(" Count: "+skip)
       val orderBy = MongoDBObject("_id" -> 1)
       val mongoClient = getMongoClient("localhost", 27017)
-      val (collection, mdbClient) = getCollection("datacleaning", "ZPmainCollection", mongoClient)
+      val collection = getCollection("myDb", "myCollection1", mongoClient)
       try {
         var jsonList: List[JsObject] = List[JsObject]()
         var jsList: List[JsValue] = List[JsValue]()
+
         if(skip == c){
           val data = collection.find().skip(skip).limit(limit).sort(orderBy)
           skip = skip + limit
 
           for(x <- data) {
             val json = Json.parse(x.toString);
-            println(json)
+            //println(json)
             last_id = (json \ "_id" ).as[String].trim
             println("id" + last_id)
             val supplier = (json \ "value").as[JsValue]
@@ -102,7 +112,7 @@ class EsJavaApi {
       } catch {
         case e: Exception => println("Exception: "+ e.getMessage)
       } finally {
-        mdbClient.close()
+        mongoClient.close()
       }
     }
   }
@@ -110,7 +120,7 @@ class EsJavaApi {
   def getClient(index: String): Client = {
     val settings = Settings.settingsBuilder()
       .put("path.home", "/usr/share/elasticsearch")
-      .put("cluster.name", "elasticsearch")
+      .put("cluster.name", "elasticsearch_kenneththomas")
       .put("action.bulk.compress", true)
       .build();
     //val node = nodeBuilder().local(true).settings(settings).node();
@@ -140,10 +150,10 @@ class EsJavaApi {
     }
   }
 
-  def getCollection(_db: String, _collection: String, mongoClient: MongoClient): (MongoCollection, MongoClient) = {
+  def getCollection(_db: String, _collection: String, mongoClient: MongoClient): MongoCollection = {
     val db = mongoClient(_db)
     val collection = db(_collection)
-    (collection, mongoClient)
+    collection
   }
 
   def getMongoClient(host: String, port: Int): MongoClient = {
