@@ -74,13 +74,13 @@ class GetZPMainData {
         //println("id" + last_id)
         val suppData = (json \ "value").as[JsValue]
         val tSupName = tObj.tokenizeName((suppData \ "supname").as[String])
-        val tSupAddr = tObj.tokenizeName((suppData \ "supaddr").as[String])
+        val tSupAddr = tObj.tokenizeAddr((suppData \ "supaddr").as[String])
         val tConName = tObj.tokenizeName((suppData \ "conname").as[String])
-        val tConAddr = tObj.tokenizeName((suppData \ "conaddr").as[String])
+        val tConAddr = tObj.tokenizeAddr((suppData \ "conaddr").as[String])
         val tN1Name = tObj.tokenizeName((suppData \ "n1name").as[String])
-        val tN1Addr = tObj.tokenizeName((suppData \ "n1addr").as[String])
+        val tN1Addr = tObj.tokenizeAddr((suppData \ "n1addr").as[String])
         val tN2Name = tObj.tokenizeName((suppData \ "n2name").as[String])
-        val tN2Addr = tObj.tokenizeName((suppData \ "n2addr").as[String])
+        val tN2Addr = tObj.tokenizeAddr((suppData \ "n2addr").as[String])
         val obj = Tokenized(last_id, tSupName, tSupAddr, tConName, tConAddr, tN1Name, tN1Addr, tN2Name, tN2Addr)
         updateMongo(obj)
 
@@ -97,9 +97,9 @@ class GetZPMainData {
     try{
       val collection = MongoConfig.getCollection("datacleaning", "ZPmainCollection", mongoClient)
       val _mObj = MongoDBObject("supname" -> obj.supname, "supaddr" -> obj.supaddr,
-        "conname" -> obj.supname, "conaddr" -> obj.supaddr,
-        "n1name" -> obj.supname, "n1addr" -> obj.supaddr,
-        "n2name" -> obj.supname, "n2addr" -> obj.supaddr)
+        "conname" -> obj.conname, "conaddr" -> obj.conaddr,
+        "n1name" -> obj.n1name, "n1addr" -> obj.n1addr,
+        "n2name" -> obj.n2name, "n2addr" -> obj.n2addr)
       val mObj = $set ("tokenized" -> _mObj)
       val query = MongoDBObject("_id" -> obj.id)
 
@@ -107,6 +107,7 @@ class GetZPMainData {
       println(a)
     } catch {
       case e: Exception => e.printStackTrace()
+
     } finally {
       mongoClient.close()
     }
