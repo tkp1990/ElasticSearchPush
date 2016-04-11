@@ -30,12 +30,13 @@ class GetZPMainData {
   }
 
   def getData () = {
-    val finalCount = 2//52982819
+    val finalCount = 52982819
     var skip, c = 0
-    val limit = 1//10000
+    val limit = 1000
     var lastId = ""
 
     while (finalCount >= skip ) {
+      println(" Count: "+skip)
       val mongoClient = MongoConfig.getMongoClient("localhost", 27017)
       try {
         val collection = MongoConfig.getCollection("datacleaning", "ZPmainCollection", mongoClient)
@@ -91,7 +92,7 @@ class GetZPMainData {
   }
 
   def updateMongo(obj: Tokenized) = {
-    println(obj)
+    //println(obj)
     val mongoClient = MongoConfig.getMongoClient("localhost", 27017)
     try{
       val collection = MongoConfig.getCollection("datacleaning", "ZPmainCollection", mongoClient)
