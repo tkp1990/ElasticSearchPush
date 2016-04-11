@@ -29,6 +29,12 @@ class GetZPMainData {
     }
   }
 
+
+  /**
+   * GetData is the method which is called for the main execution
+   * basic purpose is to get data in batches and then call the ProcessBatch method
+   *
+   */
   def getData () = {
     val finalCount = 52982819
     var skip, c = 0
@@ -62,10 +68,18 @@ class GetZPMainData {
     }
   }
 
+  /**
+   * Takes a Cursor as input and generates a List of Tokenized objects which have to be updated to their corresponding Id's
+   * Also Returns a string which is the Id of the last entry in the Cursor (which is sorted)
+   *
+   * @param data
+   * @return - Returns the last_id of the reterieved set of data from the Cursor
+   */
   def processBatch(data: MongoCursor): String = {
     var last_id = ""
     val tObj = new Tokenize
     //var jsList: List[JsObject] = List[JsObject]()
+    var objList: List[Tokenized] = List[Tokenized]()
     for(x <- data) {
       try{
         val json = Json.parse(x.toString);
@@ -82,17 +96,24 @@ class GetZPMainData {
         val tN2Name = tObj.tokenizeName((suppData \ "n2name").as[String])
         val tN2Addr = tObj.tokenizeAddr((suppData \ "n2addr").as[String])
         val obj = Tokenized(last_id, tSupName, tSupAddr, tConName, tConAddr, tN1Name, tN1Addr, tN2Name, tN2Addr)
-        updateMongo(obj)
-
+        objList = obj :: objList
+        //updateMongo(obj)
       } catch {
         case e: Exception => e.printStackTrace()
+      } finally {
       }
     }
+    bulkUpdate(objList)
     last_id
   }
 
+
+  /**
+   * Takes a Toenized object as input and performs the update
+   *
+   * @param obj - tokenized object
+   */
   def updateMongo(obj: Tokenized) = {
-    //println(obj)
     val mongoClient = MongoConfig.getMongoClient("localhost", 27017)
     try{
       val collection = MongoConfig.getCollection("datacleaning", "ZPmainCollection", mongoClient)
@@ -106,8 +127,68 @@ class GetZPMainData {
       val a = collection.update(query, mObj)
       //println(a)
     } catch {
-      case e: Exception => e.printStackTrace()
+      case e: Exception =>
+        e.printStackTrace()
+    } finally {
+      mongoClient.close()
+    }
+  }
 
+
+  /**
+   * Takes a list of Tokenized objects as input and preforms the update to the DB sequentially.
+   *
+   * @param objList - List of Tokenized object, which have to be added to the DataBase(updated to the DB actually)
+   */
+  def updateMongo(objList: List[Tokenized]) = {
+    val mongoClient = MongoConfig.getMongoClient("localhost", 27017)
+    try{
+      val collection = MongoConfig.getCollection("datacleaning", "ZPmainCollection", mongoClient)
+      for(obj <- objList) {
+        val _mObj = MongoDBObject("supname" -> obj.supname, "supaddr" -> obj.supaddr,
+          "conname" -> obj.conname, "conaddr" -> obj.conaddr,
+          "n1name" -> obj.n1name, "n1addr" -> obj.n1addr,
+          "n2name" -> obj.n2name, "n2addr" -> obj.n2addr)
+        val mObj = $set ("tokenized" -> _mObj)
+        val query = MongoDBObject("_id" -> obj.id)
+
+        collection.update(query, mObj)
+      }
+    } catch {
+      case e: Exception =>
+        e.printStackTrace()
+    } finally {
+      mongoClient.close()
+    }
+  }
+
+
+  /**
+   * Takes a list of Tokenized objects and creates a UnorderedBulkoperaition toperform
+   * updates in bulk. If there is any exception the list is sent to updateMongo method
+   * which takes a List as input and performs the update sequentially.
+   *
+   * @param objList - List of Tokenized object, which have to be added to the DataBase(updated to the DB actually)
+   */
+  def bulkUpdate(objList: List[Tokenized]) = {
+    val mongoClient = MongoConfig.getMongoClient("localhost", 27017)
+    try{
+      val collection = MongoConfig.getCollection("datacleaning", "ZPmainCollection", mongoClient)
+      val bulkOp = collection.initializeUnorderedBulkOperation
+      for( obj <- objList) {
+        val _mObj = MongoDBObject("supname" -> obj.supname, "supaddr" -> obj.supaddr,
+          "conname" -> obj.conname, "conaddr" -> obj.conaddr,
+          "n1name" -> obj.n1name, "n1addr" -> obj.n1addr,
+          "n2name" -> obj.n2name, "n2addr" -> obj.n2addr)
+        val mObj = $set ("tokenized" -> _mObj)
+        val query = MongoDBObject("_id" -> obj.id)
+        bulkOp.find(query).update(mObj)
+      }
+      val result = bulkOp.execute()
+    } catch {
+      case e: Exception =>
+        e.printStackTrace()
+        updateMongo(objList)
     } finally {
       mongoClient.close()
     }
@@ -115,6 +196,5 @@ class GetZPMainData {
 
   case class Tokenized(id: String, supname: List[String], supaddr: List[String], conname: List[String], conaddr: List[String],
                        n1name: List[String], n1addr: List[String], n2name: List[String], n2addr: List[String])
-
 
 }
