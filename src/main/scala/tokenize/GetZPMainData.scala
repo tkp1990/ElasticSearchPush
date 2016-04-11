@@ -37,7 +37,7 @@ class GetZPMainData {
    */
   def getData () = {
     val finalCount = 52982819
-    var skip, c = 0
+    var skip, c = 1905000
     val limit = 1000
     var lastId = ""
 
@@ -83,9 +83,7 @@ class GetZPMainData {
     for(x <- data) {
       try{
         val json = Json.parse(x.toString);
-        //println(json)
         last_id = (json \ "_id" ).as[String].trim
-        //println("id" + last_id)
         val suppData = (json \ "value").as[JsValue]
         val tSupName = tObj.tokenizeName((suppData \ "supname").as[String])
         val tSupAddr = tObj.tokenizeAddr((suppData \ "supaddr").as[String])
@@ -125,7 +123,6 @@ class GetZPMainData {
       val query = MongoDBObject("_id" -> obj.id)
 
       val a = collection.update(query, mObj)
-      //println(a)
     } catch {
       case e: Exception =>
         e.printStackTrace()
@@ -158,6 +155,7 @@ class GetZPMainData {
       case e: Exception =>
         e.printStackTrace()
     } finally {
+      println("UpdateMongo Sequentially done!!")
       mongoClient.close()
     }
   }
@@ -171,6 +169,7 @@ class GetZPMainData {
    * @param objList - List of Tokenized object, which have to be added to the DataBase(updated to the DB actually)
    */
   def bulkUpdate(objList: List[Tokenized]) = {
+    println("Calling bulk!!")
     val mongoClient = MongoConfig.getMongoClient("localhost", 27017)
     try{
       val collection = MongoConfig.getCollection("datacleaning", "ZPmainCollection", mongoClient)
@@ -188,8 +187,10 @@ class GetZPMainData {
     } catch {
       case e: Exception =>
         e.printStackTrace()
+        println("Exception!! calling update Mongo!!")
         updateMongo(objList)
     } finally {
+      println("Bulk Done!!")
       mongoClient.close()
     }
   }
