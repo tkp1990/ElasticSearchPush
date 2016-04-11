@@ -113,8 +113,8 @@ class GetZPMainData {
     }
   }
 
-  case class Tokenized(id: String, supname: List[String], conname: List[String], n1name: List[String], n2name: List[String],
-                       supaddr: List[String], conaddr: List[String], n1addr: List[String], n2addr: List[String])
+  case class Tokenized(id: String, supname: List[String], supaddr: List[String], conname: List[String], conaddr: List[String],
+                       n1name: List[String], n1addr: List[String], n2name: List[String], n2addr: List[String])
 
 
 }
