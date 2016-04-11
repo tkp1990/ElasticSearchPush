@@ -37,7 +37,7 @@ class GetZPMainData {
    */
   def getData () = {
     val finalCount = 52982819
-    var skip, c = 1905000
+    var skip, c = 2240000
     val limit = 1000
     var lastId = ""
 
@@ -162,7 +162,7 @@ class GetZPMainData {
 
 
   /**
-   * Takes a list of Tokenized objects and creates a UnorderedBulkoperaition toperform
+   * Takes a list of Tokenized objects and creates a UnorderedBulkoperation toperform
    * updates in bulk. If there is any exception the list is sent to updateMongo method
    * which takes a List as input and performs the update sequentially.
    *
