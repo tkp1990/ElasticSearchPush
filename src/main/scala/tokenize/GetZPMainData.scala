@@ -104,7 +104,7 @@ class GetZPMainData {
       val query = MongoDBObject("_id" -> obj.id)
 
       val a = collection.update(query, mObj)
-      println(a)
+      //println(a)
     } catch {
       case e: Exception => e.printStackTrace()
 
