@@ -1,9 +1,18 @@
+
 package tokenize
 
-import api.elasticsearch.ElasticsearchConfig
+import java.net.InetAddress
+
 import api.mongo.MongoConfig
 import com.mongodb.casbah.Imports
 import com.mongodb.casbah.Imports._
+import dataCleaning.DataMaps
+import org.elasticsearch.client.Client
+import org.elasticsearch.client.transport.TransportClient
+import org.elasticsearch.common.settings.Settings
+import org.elasticsearch.common.transport.InetSocketTransportAddress
+import org.elasticsearch.common.xcontent.XContentFactory._
+import org.elasticsearch.node.NodeBuilder
 import play.api.libs.json._
 
 /**
@@ -11,6 +20,7 @@ import play.api.libs.json._
  */
 class GetZPMainData {
 
+  val INDEX = "tokenized"
   val orderBy = MongoDBObject("_id" -> 1)
 
   implicit val idReads: Reads[ObjectId] = new Reads[ObjectId] {
@@ -36,9 +46,10 @@ class GetZPMainData {
    *
    */
   def getData () = {
-    val finalCount = 52982819
-    var skip, c = 2240000
-    val limit = 1000
+    populateLocationMaps()
+    val finalCount = 100/52982819
+    var skip, c = 0
+    val limit = 10
     var lastId = ""
 
     while (finalCount >= skip ) {
@@ -79,123 +90,114 @@ class GetZPMainData {
     var last_id = ""
     val tObj = new Tokenize
     //var jsList: List[JsObject] = List[JsObject]()
-    var objList: List[Tokenized] = List[Tokenized]()
+    var objList: List[Token] = List[Token]()
     for(x <- data) {
       try{
         val json = Json.parse(x.toString);
         last_id = (json \ "_id" ).as[String].trim
         val suppData = (json \ "value").as[JsValue]
-        val tSupName = tObj.tokenizeName((suppData \ "supname").as[String])
-        val tSupAddr = tObj.tokenizeAddr((suppData \ "supaddr").as[String])
-        val tConName = tObj.tokenizeName((suppData \ "conname").as[String])
-        val tConAddr = tObj.tokenizeAddr((suppData \ "conaddr").as[String])
-        val tN1Name = tObj.tokenizeName((suppData \ "n1name").as[String])
-        val tN1Addr = tObj.tokenizeAddr((suppData \ "n1addr").as[String])
-        val tN2Name = tObj.tokenizeName((suppData \ "n2name").as[String])
-        val tN2Addr = tObj.tokenizeAddr((suppData \ "n2addr").as[String])
-        val obj = Tokenized(last_id, tSupName, tSupAddr, tConName, tConAddr, tN1Name, tN1Addr, tN2Name, tN2Addr)
+        val tSupName = (suppData \ "supname").as[String]
+        val tSupAddr = (suppData \ "supaddr").as[String]
+        val tConName = (suppData \ "conname").as[String]
+        val tConAddr = (suppData \ "conaddr").as[String]
+        val tN1Name = (suppData \ "n1name").as[String]
+        val tN1Addr = (suppData \ "n1addr").as[String]
+        val tN2Name = (suppData \ "n2name").as[String]
+        val tN2Addr = (suppData \ "n2addr").as[String]
+        val obj = Token(last_id, tSupName, tSupAddr, tConName, tConAddr, tN1Name, tN1Addr, tN2Name, tN2Addr)
         objList = obj :: objList
-        //updateMongo(obj)
+        val resultList = tObj.tokenizeList(objList)
+        val client = getClient(INDEX)
+        /*try{
+          if(resultList.length > 0){
+            bulkInsert(resultList, client)
+          } else {
+            println("Search Results is empty, Noting to insert")
+          }
+        } catch {
+          case e: Exception => e.printStackTrace()
+        } finally {
+          client.close()
+        }*/
       } catch {
         case e: Exception => e.printStackTrace()
       } finally {
+
       }
     }
-    bulkUpdate(objList)
     last_id
   }
 
+  /**
+   *
+   * @param index - ES Index
+   * @return - ElasticSearch Client
+   *
+   */
+  def getClient(index: String): Client = {
+    val settings = Settings.settingsBuilder()
+      .put("path.home", "/usr/share/elasticsearch")
+      .put("cluster.name", "elasticsearch")
+      .put("action.bulk.compress", true)
+      .build();
+    val client = TransportClient.builder().settings(settings).build();
+    client.addTransportAddresses(new InetSocketTransportAddress(InetAddress.getByName("localhost"),9300))
+    /*val client = NodeBuilder.nodeBuilder()
+      .client(true)
+      .node()
+      .client();*/
+    val indexExists = client.admin().indices().prepareExists(index).execute().actionGet().isExists();
+    if (!indexExists) {
+      client.admin().indices().prepareCreate(index).execute().actionGet();
+    }
+    client
+  }
+
+  def bulkInsert(jsonList: List[JsValue], client: Client): Unit ={
+    val bulkRequest = client.prepareBulk();
+    for (x <- jsonList) {
+      bulkRequest.add(client.prepareIndex(INDEX, "data")
+        .setSource(jsonBuilder().startObject().field("data", x).endObject())
+      );
+    }
+    val bulkResponse = bulkRequest.execute().actionGet();
+    if (bulkResponse.hasFailures()) {
+      // process failures by iterating through each bulk response item
+    }
+  }
 
   /**
-   * Takes a Toenized object as input and performs the update
+   * If a particular document doesn't contain tokenized, call this method and pass the Id of the particular Record.
    *
-   * @param obj - tokenized object
    */
-  def updateMongo(obj: Tokenized) = {
+  def tokenizeAndSave(id: String, limit: Integer, db: String, collectionName: String) = {
     val mongoClient = MongoConfig.getMongoClient("localhost", 27017)
-    try{
-      val collection = MongoConfig.getCollection("datacleaning", "ZPmainCollection", mongoClient)
-      val _mObj = MongoDBObject("supname" -> obj.supname, "supaddr" -> obj.supaddr,
-        "conname" -> obj.conname, "conaddr" -> obj.conaddr,
-        "n1name" -> obj.n1name, "n1addr" -> obj.n1addr,
-        "n2name" -> obj.n2name, "n2addr" -> obj.n2addr)
-      val mObj = $set ("tokenized" -> _mObj)
-      val query = MongoDBObject("_id" -> obj.id)
-
-      val a = collection.update(query, mObj)
+    try {
+      val collection = MongoConfig.getCollection(db, collectionName, mongoClient)
+      val q = "_id" $gt (id)
+      val data = collection.find(q).limit(limit)
+      processBatch(data)
     } catch {
       case e: Exception =>
+        println("Exception: " + e.getMessage)
         e.printStackTrace()
     } finally {
       mongoClient.close()
     }
   }
 
-
-  /**
-   * Takes a list of Tokenized objects as input and preforms the update to the DB sequentially.
-   *
-   * @param objList - List of Tokenized object, which have to be added to the DataBase(updated to the DB actually)
-   */
-  def updateMongo(objList: List[Tokenized]) = {
-    val mongoClient = MongoConfig.getMongoClient("localhost", 27017)
-    try{
-      val collection = MongoConfig.getCollection("datacleaning", "ZPmainCollection", mongoClient)
-      for(obj <- objList) {
-        val _mObj = MongoDBObject("supname" -> obj.supname, "supaddr" -> obj.supaddr,
-          "conname" -> obj.conname, "conaddr" -> obj.conaddr,
-          "n1name" -> obj.n1name, "n1addr" -> obj.n1addr,
-          "n2name" -> obj.n2name, "n2addr" -> obj.n2addr)
-        val mObj = $set ("tokenized" -> _mObj)
-        val query = MongoDBObject("_id" -> obj.id)
-
-        collection.update(query, mObj)
-      }
-    } catch {
-      case e: Exception =>
-        e.printStackTrace()
-    } finally {
-      println("UpdateMongo Sequentially done!!")
-      mongoClient.close()
-    }
+  def populateLocationMaps() = {
+    val mapDataUrl = SourceDir("./src/main/resources/CountryWithCodes.csv")
+    val citiesDataUrl = SourceDir("./src/main/resources/cities_country.csv")
+    val stateDataUrl = SourceDir("./src/main/resources/cities_region.csv")
+    DataMaps.populateCountryMap(mapDataUrl)
+    DataMaps.populateCitiesCountryMap(citiesDataUrl)
+    DataMaps.populateStateCountryMap(stateDataUrl)
   }
-
-
-  /**
-   * Takes a list of Tokenized objects and creates a UnorderedBulkoperation toperform
-   * updates in bulk. If there is any exception the list is sent to updateMongo method
-   * which takes a List as input and performs the update sequentially.
-   *
-   * @param objList - List of Tokenized object, which have to be added to the DataBase(updated to the DB actually)
-   */
-  def bulkUpdate(objList: List[Tokenized]) = {
-    println("Calling bulk!!")
-    val mongoClient = MongoConfig.getMongoClient("localhost", 27017)
-    try{
-      val collection = MongoConfig.getCollection("datacleaning", "ZPmainCollection", mongoClient)
-      val bulkOp = collection.initializeUnorderedBulkOperation
-      for( obj <- objList) {
-        val _mObj = MongoDBObject("supname" -> obj.supname, "supaddr" -> obj.supaddr,
-          "conname" -> obj.conname, "conaddr" -> obj.conaddr,
-          "n1name" -> obj.n1name, "n1addr" -> obj.n1addr,
-          "n2name" -> obj.n2name, "n2addr" -> obj.n2addr)
-        val mObj = $set ("tokenized" -> _mObj)
-        val query = MongoDBObject("_id" -> obj.id)
-        bulkOp.find(query).update(mObj)
-      }
-      val result = bulkOp.execute()
-    } catch {
-      case e: Exception =>
-        e.printStackTrace()
-        println("Exception!! calling update Mongo!!")
-        updateMongo(objList)
-    } finally {
-      println("Bulk Done!!")
-      mongoClient.close()
-    }
-  }
-
-  case class Tokenized(id: String, supname: List[String], supaddr: List[String], conname: List[String], conaddr: List[String],
-                       n1name: List[String], n1addr: List[String], n2name: List[String], n2addr: List[String])
 
 }
+
+case class Token(id: String, supname: String, supaddr: String, conname: String, conaddr: String,
+                 n1name: String, n1addr: String, n2name: String, n2addr: String)
+
+case class SourceDir(path: String)
