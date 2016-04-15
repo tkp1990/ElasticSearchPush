@@ -11,6 +11,7 @@ import org.elasticsearch.client.Client
 import org.elasticsearch.client.transport.TransportClient
 import org.elasticsearch.common.settings.Settings
 import org.elasticsearch.common.transport.InetSocketTransportAddress
+import org.elasticsearch.common.xcontent.XContentBuilder
 import org.elasticsearch.common.xcontent.XContentFactory._
 import org.elasticsearch.node.NodeBuilder
 import play.api.libs.json._
@@ -20,7 +21,7 @@ import play.api.libs.json._
  */
 class GetZPMainData {
 
-  val INDEX = "tokenized"
+  val INDEX = "tokenizedCA35"
   val orderBy = MongoDBObject("_id" -> 1)
 
   implicit val idReads: Reads[ObjectId] = new Reads[ObjectId] {
@@ -47,7 +48,7 @@ class GetZPMainData {
    */
   def getData () = {
     populateLocationMaps()
-    val finalCount = 100/52982819
+    val finalCount = 52982819
     var skip, c = 0
     val limit = 10
     var lastId = ""
@@ -108,8 +109,9 @@ class GetZPMainData {
         objList = obj :: objList
         val resultList = tObj.tokenizeList(objList)
         val client = getClient(INDEX)
-        /*try{
+        try{
           if(resultList.length > 0){
+            println("inserting into ES")
             bulkInsert(resultList, client)
           } else {
             println("Search Results is empty, Noting to insert")
@@ -118,7 +120,7 @@ class GetZPMainData {
           case e: Exception => e.printStackTrace()
         } finally {
           client.close()
-        }*/
+        }
       } catch {
         case e: Exception => e.printStackTrace()
       } finally {
@@ -153,11 +155,12 @@ class GetZPMainData {
     client
   }
 
-  def bulkInsert(jsonList: List[JsValue], client: Client): Unit ={
+  def bulkInsert(jsonList: List[XContentBuilder], client: Client): Unit ={
     val bulkRequest = client.prepareBulk();
     for (x <- jsonList) {
+      println(x.prettyPrint().string())
       bulkRequest.add(client.prepareIndex(INDEX, "data")
-        .setSource(jsonBuilder().startObject().field("data", x).endObject())
+        .setSource(x)
       );
     }
     val bulkResponse = bulkRequest.execute().actionGet();
@@ -166,25 +169,6 @@ class GetZPMainData {
     }
   }
 
-  /**
-   * If a particular document doesn't contain tokenized, call this method and pass the Id of the particular Record.
-   *
-   */
-  def tokenizeAndSave(id: String, limit: Integer, db: String, collectionName: String) = {
-    val mongoClient = MongoConfig.getMongoClient("localhost", 27017)
-    try {
-      val collection = MongoConfig.getCollection(db, collectionName, mongoClient)
-      val q = "_id" $gt (id)
-      val data = collection.find(q).limit(limit)
-      processBatch(data)
-    } catch {
-      case e: Exception =>
-        println("Exception: " + e.getMessage)
-        e.printStackTrace()
-    } finally {
-      mongoClient.close()
-    }
-  }
 
   def populateLocationMaps() = {
     val mapDataUrl = SourceDir("./src/main/resources/CountryWithCodes.csv")
@@ -193,6 +177,8 @@ class GetZPMainData {
     DataMaps.populateCountryMap(mapDataUrl)
     DataMaps.populateCitiesCountryMap(citiesDataUrl)
     DataMaps.populateStateCountryMap(stateDataUrl)
+    DataMaps.populateCityMap(citiesDataUrl)
+    DataMaps.populateStateMap(stateDataUrl)
   }
 
 }

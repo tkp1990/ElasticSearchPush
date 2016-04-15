@@ -72,7 +72,7 @@ class PushTokenizedToES {
                 println("Exception: " + e.getMessage)
 
                 val tokenizedObj = new GetZPMainData
-                tokenizedObj.tokenizeAndSave(last_id, 1000, DB, COLLECTION)
+                //tokenizedObj.tokenizeAndSave(last_id, 1000, DB, COLLECTION)
                 val q = ID $gt (last_id)
                 val data = collection.find(q).limit(limit)
                 for(x <- data) {

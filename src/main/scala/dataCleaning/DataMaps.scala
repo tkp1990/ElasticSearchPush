@@ -75,9 +75,9 @@ object DataMaps {
       val x = it.next()
       if(x.length > 0){
         try{
-          countryMap ++= Map(x(0).trim.toLowerCase() -> x(0).trim)
-          countryMap ++= Map(x(1).trim.toLowerCase() -> x(0).trim)
-          countryMap ++= Map(x(2).trim.toLowerCase() -> x(0).trim)
+          countryMap ++= Map(x(0).trim.toLowerCase() -> x(0).trim.toLowerCase())
+          countryMap ++= Map(x(1).trim.toLowerCase() -> x(0).trim.toLowerCase())
+          countryMap ++= Map(x(2).trim.toLowerCase() -> x(0).trim.toLowerCase())
         } catch {
           case e: Exception => e.printStackTrace()
         }
@@ -135,6 +135,39 @@ object DataMaps {
     countryStateMap
   }
 
+  var cityMap: Map[String, String] = Map()
+  def populateCityMap(path: SourceDir) = {
+    val reader = CSVReader.open(path.path)
+    val it = reader.iterator
+    while (it.hasNext) {
+      val x = it.next()
+      if(x.length > 0) {
+        val key = x(0).trim.toLowerCase()
+        if(!cityMap.contains(key)) {
+          val ctry = x(1).trim.toLowerCase()
+          cityMap = cityMap + (key -> ctry)
+        }
+      }
+    }
+    cityMap
+  }
+
+  var stateMap: Map[String, String] = Map()
+  def populateStateMap(path: SourceDir) = {
+    val reader = CSVReader.open(path.path)
+    val it = reader.iterator
+    while (it.hasNext) {
+      val x = it.next()
+      if(x.length > 0) {
+        val key = x(0).trim.toLowerCase()
+        if(!stateMap.contains(key)) {
+          val ctry = x(1).trim.toLowerCase()
+          stateMap = stateMap + (key -> ctry)
+        }
+      }
+    }
+    stateMap
+  }
   /*var countryStateMap: Map[String, List[String]] = Map()
   def populateStateCountryMap(sqlContext: SQLContext, path: SourceDir) = {
     val df = sqlContext.read.format("com.databricks.spark.csv").option("header", "true").load(path.path)

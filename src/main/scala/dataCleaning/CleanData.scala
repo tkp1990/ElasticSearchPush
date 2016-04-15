@@ -24,7 +24,7 @@ object CleanData {
     "limitada" -> "Limited","co limit" -> "Co Limited", "co limited" -> "Co Limited", "co ltd" -> "Co Limited", "pty ltd" -> "Pty Limited",
     "s a " -> "SA", "sa" -> "SA")
 
-  val stopWordList = Set("center", "central", "century")
+  val stopWordList = Set("center", "central", "century", "east", "south", "north", "west", "hill", "court", "street", "centre")
 
   def processData(input: String): SellerObj = {
     val a = stop_text_list.replaceAllIn(input, "")
@@ -39,21 +39,22 @@ object CleanData {
         if(in.length > 1){
           val stopFilteredInput = removeStopWords(in(1))
           val loc = getAddrDetails(stopFilteredInput)
-          println("Country: "+loc.country+" State: "+loc.state+" City: "+loc.city+" pincode: "+loc.pinCode)
           _st = filterLocationDetails(in(1), loc)
-          println("CompanyName: "+in(0)+"Street Data: "+ _st)
+          //println("Country: "+loc.country+" State: "+loc.state+" City: "+loc.city+" pincode: "+loc.pinCode)
+          //println("CompanyName: "+in(0)+"Street Data: "+ _st)
           val obj = assignPointsForSupplierObj(in(0)+bType ,_st, loc, bType, "")
 
           return obj
         }else  {
-          val loc = getAddrDetails(bracesInput)
-          println("Country: "+loc.country+" State: "+loc.state+" City: "+loc.city+" pincode: "+loc.pinCode)
-          val remainingString = filterLocationDetails(bracesInput, loc)
-          println("Remaining String: "+remainingString)
-          val (_c, _s) = getCompNameWhenNoBusinessType(remainingString)
+          val (_c, _s) = getCompNameWhenNoBusinessType(bracesInput)
           _companyName = _c; _st = _s
-          println("CompanyName: "+_companyName+" St: "+ _st)
-          val obj = assignPointsForSupplierObj(_companyName ,_st, loc, "", "")
+          val stopFilteredInput = removeStopWords(_st)
+          val loc = getAddrDetails(stopFilteredInput)
+          val remainingString = filterLocationDetails(_st, loc)
+          //println("Country: "+loc.country+" State: "+loc.state+" City: "+loc.city+" pincode: "+loc.pinCode)
+          //println("Remaining String: "+remainingString)
+          //println("CompanyName: "+_companyName+" St: "+ remainingString)
+          val obj = assignPointsForSupplierObj(_companyName ,remainingString, loc, "", "")
           return obj
         }
       case Left(msg) =>
@@ -61,11 +62,10 @@ object CleanData {
         _companyName = _c; _st = _s
         val stopFilteredInput = removeStopWords(_st)
         val loc = getAddrDetails(stopFilteredInput)
-        println("Country: "+loc.country+" State: "+loc.state+" City: "+loc.city+" pincode: "+loc.pinCode)
-        val remainingString = filterLocationDetails(bracesInput, loc)
-        println("Remaining String: "+remainingString)
-
-        println("CompanyName: "+_companyName+" St: "+ remainingString)
+        val remainingString = filterLocationDetails(_st, loc)
+        //println("Country: "+loc.country+" State: "+loc.state+" City: "+loc.city+" pincode: "+loc.pinCode)
+        //println("Remaining String: "+remainingString)
+        //println("CompanyName: "+_companyName+" St: "+ remainingString)
         val obj = assignPointsForSupplierObj(_companyName ,remainingString, loc, "", "")
         return obj
     }
@@ -89,7 +89,6 @@ object CleanData {
    */
   def checkIfStringHasBusinessType(input: String): Either[String, String] = {
     val tempInput = stop_text_list.replaceAllIn(input, "")
-    //println("TempInput: "+ tempInput)
     val tokenz = tempInput.split(" ").toList
     checkIfBusniessTypeIsMultiText(tokenz) match {
       case Right(bType) =>
@@ -98,7 +97,6 @@ object CleanData {
         for ( x <- tokenz ) {
           businessTypeMap.contains(x.toLowerCase()) match {
             case true =>
-              //println("Single Match true: "+x)
               return Right(x)
             case false =>
               Left("")
@@ -116,7 +114,6 @@ object CleanData {
   def checkIfBusniessTypeIsMultiText(input: List[String]): Either[String, String] = {
     for( x <- 0 to input.length - 2) {
       val searchTerm = input(x) + " " + input(x + 1)
-      //println(searchTerm)
       if(businessTypeMap.contains(searchTerm)) {
         businessTypeMap.get(searchTerm) match {
           case Some(bType) =>
@@ -152,7 +149,30 @@ object CleanData {
     }
   }
 
-
+  def getAddressDetails(input: String): Location = {
+    var c1, c2 = ""
+    val city = AddressExtraction.getCity(input)
+    val state = AddressExtraction.getState(input)
+    if(!city.isEmpty)
+      c1 = AddressExtraction.getCountry(input, AddressExtraction.SEARCH_CITY)
+    if(!state.isEmpty)
+      c2 = AddressExtraction.getCountry(input, AddressExtraction.SEARCH_STATE)
+    var country = {
+      if(!c1.isEmpty && !c2.isEmpty)
+        c1 + ", " + c2
+      else if(c2.isEmpty && !c1.isEmpty)
+        c1
+      else if(c1.isEmpty && !c1.isEmpty)
+        c2
+      else
+        ""
+    }
+    val country_direct = AddressExtraction.getCountryDirect(input)
+    if(country.isEmpty)
+      country = country_direct
+    val pincode = AddressExtraction.getZipcode(input)
+    Location(country, "", state, city, pincode)
+  }
 
   /**
    *
@@ -169,14 +189,10 @@ object CleanData {
             country = ctry
             inCtry = x
             val (city, state) = getStateAndCity(input, ctry)
-            println("Country:  "+ctry+" State: "+state+" City: "+city)
-          //return Right(ctry,x)
           case None =>
             val (_city, _state) = getStateAndCity(input, "")
             city = _city; state = _state
-            //logger
-            println("Country:  "+" No Data available "+" State: "+state+" City: "+city)
-          //Left("")
+            //println("Country:  "+" No Data available "+" State: "+state+" City: "+city)
         }
       }
       pincode = filterPincode(input) match {
@@ -197,7 +213,6 @@ object CleanData {
       case false =>
       //Nothing
     }
-    //println("Country:  "+" No Data available "+" State: "+state+" City: "+city+" Pincode: "+pincode)
     Location( country, inCtry, state, city, pincode )
   }
 
@@ -207,18 +222,30 @@ object CleanData {
    * @return - Either country extracted from the input string or an error message
    */
   def multiTokenSearchInIndexForCountry(in: String): Either[String, (String, String)] = {
-    val input = in.split(" ").toList
+    val input = in.toLowerCase().split(" ").toList
     for( x <- 0 to input.length - 2) {
       val searchTerm = input(x) + " " + input(x + 1)
-      //println("SearchTerm -> "+searchTerm)
-      if (DataMaps.countryMap.contains(searchTerm.trim.toLowerCase())) {
-        return DataMaps.countryMap.get(searchTerm.trim.toLowerCase()) match {
+      if (DataMaps.countryMap.contains(searchTerm.trim)) {
+        return DataMaps.countryMap.get(searchTerm.trim) match {
           case Some(country) => Right(country, searchTerm)
           case _ => Left("in multi text search")
         }
       }
     }
+    val x = checkAgainstAllCountires(in)
+    if(!x.isEmpty)
+      return Right(x, x)
     Left("")
+  }
+
+  def checkAgainstAllCountires(input: String): String = {
+    var ctry = ""
+    val countrySet = DataMaps.countryMap.keys.toSet
+    for(x <- countrySet) {
+      if(input.contains(" "+x+" "))
+        ctry = x
+    }
+    ctry
   }
 
   /**
@@ -269,13 +296,9 @@ object CleanData {
   }
 
   def compareWithAllCities(input: String): Either[String, String] = {
-    val citiesList = DataMaps.countryCityMap.values.toList
-    val citiesSet = citiesList.flatMap(x => x).toSet
+    val citiesSet = DataMaps.cityMap.keys.toSet
+    //val citiesSet = citiesList.flatMap(x => x).toSet
     val in = input.split(" ").toList
-    /*for( x <- 0 to in.length - 2) {
-      val searchTerm = in(x) + " " + in(x + 1)
-      if(citiesSet.contains(searchTerm)) return Right(searchTerm)
-    }*/
     for( x <- in ){
       if (citiesSet.contains(x) && x.length > 3) return Right(x)
     }
@@ -287,6 +310,9 @@ object CleanData {
 
     Left("")
   }
+
+
+
 
   /**
    * Get state details from the input passed, using countryStateMap and country.
@@ -350,7 +376,8 @@ object CleanData {
     in = in.replace(loc.inCtry, "")
     in = in.replace(loc.city, "")
     in = in.replace(loc.state, "")
-    in = in.replace(loc.pinCode, "")
+    if(!loc.pinCode.equals(""))
+      in = in.replace(loc.pinCode, " ")
     in
   }
 
@@ -400,7 +427,7 @@ object CleanData {
         points += businessTypePecWt
     }
     if (!companyName.isEmpty) points += companyNamePecWt
-    println("Point: "+points+" Company : "+ companyName)
+    //println("Point: "+points+" Company : "+ companyName)
     SellerObj(companyName, st, loc, bType, remainingSt, points)
   }
 
