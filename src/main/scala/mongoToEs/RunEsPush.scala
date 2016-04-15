@@ -7,13 +7,13 @@ import tokenize.{Token, Tokenize, GetZPMainData}
  */
 object RunEsPush {
   def main(args: Array[String]) {
-    //val obj = new GetZPMainData
-    val obj = new Tokenize
+    val obj = new GetZPMainData
+    //val obj = new Tokenize
     try{
       println("Application Start")
-      //obj.getData()
-      var tkList: List[Token] = getDataList()
-      obj.tokenizeAndInsert(tkList)
+      obj.getData()
+      /*var tkList: List[Token] = getDataList()
+      obj.tokenizeAndInsert(tkList)*/
       //obj.tokenizeObj(tk)
       //obj.tokenizeName("a w faber-castell u.s/a")
       println("Application End")

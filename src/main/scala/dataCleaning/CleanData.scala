@@ -1,5 +1,6 @@
 package dataCleaning
 
+
 import scala.collection.immutable.HashMap
 
 /**
@@ -11,20 +12,20 @@ object CleanData {
   private val zipIN="""\s(\d{3})[-+,\s+]?(\d{2,3})(\W|$)([\s|$])?""".r
   private val addrRegex = """[a-zA_Z]*[0-9]+[a-zA-Z0-9_.-/]*""".r
 
-  final val cityPecWt = 20
-  final val statePecWt = 15
-  final val countryPecWt = 10
-  final val streetPecWt = 10
-  final val pincodePecWt = 5
-  final val businessTypePecWt = 10
-  final val companyNamePecWt = 25
+  final val cityPecWt = 23.0
+  final val statePecWt = 17.0
+  final val countryPecWt = 12.0
+  final val streetPecWt = 10.0
+  final val pincodePecWt = 10.0
+  final val businessTypePecWt = 7.0
+  final val companyNamePecWt = 25.0
 
   val businessTypeMap: HashMap[String, String] = HashMap("ltd" -> "LTD", "limited" -> "Limited", "pvt ltd" -> "Private Limited",
     "india pvt ltd" -> "India Private Limited", "llp" -> "LLP", "inc" -> "Inc", "co" -> "cooperated","corp" -> "cooperated", "llc" -> "LLC",
     "limitada" -> "Limited","co limit" -> "Co Limited", "co limited" -> "Co Limited", "co ltd" -> "Co Limited", "pty ltd" -> "Pty Limited",
     "s a " -> "SA", "sa" -> "SA")
 
-  val stopWordList = Set("center", "central", "century", "east", "south", "north", "west", "hill", "court", "street", "centre")
+  val stopWordList = Set("center", "central", "century", "east", "south", "north", "west", "hill", "court", "street", "tower", "city")
 
   def processData(input: String): SellerObj = {
     val a = stop_text_list.replaceAllIn(input, "")
@@ -40,21 +41,19 @@ object CleanData {
           val stopFilteredInput = removeStopWords(in(1))
           val loc = getAddrDetails(stopFilteredInput)
           _st = filterLocationDetails(in(1), loc)
-          //println("Country: "+loc.country+" State: "+loc.state+" City: "+loc.city+" pincode: "+loc.pinCode)
-          //println("CompanyName: "+in(0)+"Street Data: "+ _st)
-          val obj = assignPointsForSupplierObj(in(0)+bType ,_st, loc, bType, "")
-
+//          Logger.debug("Country: "+loc.country+" State: "+loc.state+" City: "+loc.city+" pincode: "+loc.pinCode)
+//          Logger.debug("CompanyName: "+in(0)+"Street Data: "+ _st)
+          val obj = assignPointsForSupplierObj(in(0) ,_st, loc, bType, "")
           return obj
         }else  {
-          val (_c, _s) = getCompNameWhenNoBusinessType(bracesInput)
+          val loc = getAddrDetails(bracesInput)
+          val remainingString = filterLocationDetails(bracesInput, loc)
+          val (_c, _s) = getCompNameWhenNoBusinessType(remainingString)
           _companyName = _c; _st = _s
-          val stopFilteredInput = removeStopWords(_st)
-          val loc = getAddrDetails(stopFilteredInput)
-          val remainingString = filterLocationDetails(_st, loc)
-          //println("Country: "+loc.country+" State: "+loc.state+" City: "+loc.city+" pincode: "+loc.pinCode)
-          //println("Remaining String: "+remainingString)
-          //println("CompanyName: "+_companyName+" St: "+ remainingString)
-          val obj = assignPointsForSupplierObj(_companyName ,remainingString, loc, "", "")
+//          Logger.debug("Country: "+loc.country+" State: "+loc.state+" City: "+loc.city+" pincode: "+loc.pinCode)
+//          Logger.debug("Remaining String: "+remainingString)
+//          Logger.debug("CompanyName: "+_companyName+" St: "+ _st)
+          val obj = assignPointsForSupplierObj(_companyName ,_st, loc, "", "")
           return obj
         }
       case Left(msg) =>
@@ -62,10 +61,11 @@ object CleanData {
         _companyName = _c; _st = _s
         val stopFilteredInput = removeStopWords(_st)
         val loc = getAddrDetails(stopFilteredInput)
-        val remainingString = filterLocationDetails(_st, loc)
-        //println("Country: "+loc.country+" State: "+loc.state+" City: "+loc.city+" pincode: "+loc.pinCode)
-        //println("Remaining String: "+remainingString)
-        //println("CompanyName: "+_companyName+" St: "+ remainingString)
+
+        val remainingString = filterLocationDetails(bracesInput, loc)
+//        Logger.debug("Country: "+loc.country+" State: "+loc.state+" City: "+loc.city+" pincode: "+loc.pinCode)
+//        Logger.debug("Remaining String: "+remainingString)
+//        Logger.debug("CompanyName: "+_companyName+" St: "+ remainingString)
         val obj = assignPointsForSupplierObj(_companyName ,remainingString, loc, "", "")
         return obj
     }
@@ -89,6 +89,7 @@ object CleanData {
    */
   def checkIfStringHasBusinessType(input: String): Either[String, String] = {
     val tempInput = stop_text_list.replaceAllIn(input, "")
+    //println("TempInput: "+ tempInput)
     val tokenz = tempInput.split(" ").toList
     checkIfBusniessTypeIsMultiText(tokenz) match {
       case Right(bType) =>
@@ -97,6 +98,7 @@ object CleanData {
         for ( x <- tokenz ) {
           businessTypeMap.contains(x.toLowerCase()) match {
             case true =>
+              //println("Single Match true: "+x)
               return Right(x)
             case false =>
               Left("")
@@ -114,6 +116,7 @@ object CleanData {
   def checkIfBusniessTypeIsMultiText(input: List[String]): Either[String, String] = {
     for( x <- 0 to input.length - 2) {
       val searchTerm = input(x) + " " + input(x + 1)
+      //println(searchTerm)
       if(businessTypeMap.contains(searchTerm)) {
         businessTypeMap.get(searchTerm) match {
           case Some(bType) =>
@@ -149,6 +152,7 @@ object CleanData {
     }
   }
 
+
   def getAddressDetails(input: String): Location = {
     var c1, c2 = ""
     val city = AddressExtraction.getCity(input)
@@ -157,7 +161,7 @@ object CleanData {
       c1 = AddressExtraction.getCountry(input, AddressExtraction.SEARCH_CITY)
     if(!state.isEmpty)
       c2 = AddressExtraction.getCountry(input, AddressExtraction.SEARCH_STATE)
-    var country = {
+    val country = {
       if(!c1.isEmpty && !c2.isEmpty)
         c1 + ", " + c2
       else if(c2.isEmpty && !c1.isEmpty)
@@ -167,12 +171,10 @@ object CleanData {
       else
         ""
     }
-    val country_direct = AddressExtraction.getCountryDirect(input)
-    if(country.isEmpty)
-      country = country_direct
     val pincode = AddressExtraction.getZipcode(input)
     Location(country, "", state, city, pincode)
   }
+
 
   /**
    *
@@ -189,10 +191,14 @@ object CleanData {
             country = ctry
             inCtry = x
             val (city, state) = getStateAndCity(input, ctry)
+          //println("Country:  "+ctry+" State: "+state+" City: "+city)
+          //return Right(ctry,x)
           case None =>
             val (_city, _state) = getStateAndCity(input, "")
             city = _city; state = _state
-            //println("Country:  "+" No Data available "+" State: "+state+" City: "+city)
+            //logger
+            println("Country:  "+" No Data available "+" State: "+state+" City: "+city)
+          //Left("")
         }
       }
       pincode = filterPincode(input) match {
@@ -204,16 +210,17 @@ object CleanData {
     city = _city; state = _state
     country.isEmpty match {
       case true =>
-        val (a, b): (String, String) = multiTokenSearchInIndexForCountry(input) match{
-          case Right((ctry, inC1)) =>
-            (ctry, inC1)
-          case Left(msg) => ("","")
+        val a: String = multiTokenSearchInIndexForCountry(input) match{
+          case Right(inC1) =>
+            inC1
+          case Left(msg) => ("")
         }
-        country = a; inCtry = b
+        inCtry = a
       case false =>
       //Nothing
     }
-    Location( country, inCtry, state, city, pincode )
+    //println("Country:  "+" No Data available "+" State: "+state+" City: "+city+" Pincode: "+pincode)
+    Location( country.toLowerCase().trim, inCtry, state.trim, city.trim, pincode.trim )
   }
 
   /**
@@ -221,20 +228,21 @@ object CleanData {
    * @param in
    * @return - Either country extracted from the input string or an error message
    */
-  def multiTokenSearchInIndexForCountry(in: String): Either[String, (String, String)] = {
+  def multiTokenSearchInIndexForCountry(in: String): Either[String, String] = {
     val input = in.toLowerCase().split(" ").toList
     for( x <- 0 to input.length - 2) {
       val searchTerm = input(x) + " " + input(x + 1)
+      //println("SearchTerm -> "+searchTerm)
       if (DataMaps.countryMap.contains(searchTerm.trim)) {
         return DataMaps.countryMap.get(searchTerm.trim) match {
-          case Some(country) => Right(country, searchTerm)
+          case Some(country) => Right(searchTerm)
           case _ => Left("in multi text search")
         }
       }
     }
     val x = checkAgainstAllCountires(in)
     if(!x.isEmpty)
-      return Right(x, x)
+      return Right(x)
     Left("")
   }
 
@@ -261,7 +269,7 @@ object CleanData {
     }
     val state = filterWithCountryAndState(input, country) match {
       case Right(_state) => _state
-      case Left("") => ""
+      case Left(msg) => ""
     }
     (city, state)
   }
@@ -273,7 +281,7 @@ object CleanData {
    * @param country
    * @return
    */
-  def filterWithCountryAndCity(input: String,country:String): Either[String,String] ={
+  def filterCountryAndCity(input: String,country:String): Either[String,String] ={
     DataMaps.countryCityMap.get(country) match {
       case Some(cities) =>
         val tokenz = input.split(" ")
@@ -282,6 +290,7 @@ object CleanData {
             if(x.equals(city)) return Right(x)
           }
         }
+
         for(city <- cities){
           val c = city + " "
           val cityData = c.r.findFirstIn(input)
@@ -296,14 +305,18 @@ object CleanData {
   }
 
   def compareWithAllCities(input: String): Either[String, String] = {
-    val citiesSet = DataMaps.cityMap.keys.toSet
-    //val citiesSet = citiesList.flatMap(x => x).toSet
+    val citiesList = DataMaps.countryCityMap.values.toList
+    val citiesSet = citiesList.flatMap(x => x).toSet
     val in = input.split(" ").toList
+    /*for( x <- 0 to in.length - 2) {
+      val searchTerm = in(x) + " " + in(x + 1)
+      if(citiesSet.contains(searchTerm)) return Right(searchTerm)
+    }*/
     for( x <- in ){
       if (citiesSet.contains(x) && x.length > 3) return Right(x)
     }
     for(a <- citiesSet) {
-      var city = a.r.findFirstIn(input)
+      val city = a+" ".r.findFirstIn(input)
       if(!city.isEmpty && a.length > 3)
         return Right(a)
     }
@@ -311,8 +324,113 @@ object CleanData {
     Left("")
   }
 
+  def filterWithCountryAndCity(input: String, country:String) = {
+    var cityRet = ""
+    var cityRetSet: Set[String] = Set.empty[String]
+    DataMaps.countryCityMap.get(country) match {
+      case Some(citiesList) =>
+        val tokenz = input.split(" ")
+        for( city <- citiesList) {
+          val c = city + " "
+          val cityData = c.r.findFirstIn(input)
+          if (!cityData.isEmpty){
+            if(cityRet.isEmpty && !cityRetSet.contains(cityData.get)){
+              cityRet = cityRet + cityData.get
+              cityRetSet = cityRetSet + cityData.get
+            }
+            else if(!cityRet.isEmpty && !cityRetSet.contains(cityData.get)){
+              cityRet = cityRet + ", " +  cityData.get
+              cityRetSet = cityRetSet + cityData.get
+            }
+          }
+        }
+      case _ =>
+        compareWithAllCities(input) match {
+          case Right(city) =>
+            if(cityRet.isEmpty && !cityRetSet.contains(city)){
+              cityRet = cityRet + city
+              cityRetSet = cityRetSet + city
+            }
+            else if(!cityRet.isEmpty && !cityRetSet.contains(city)){
+              cityRet = cityRet + ", " +  city
+              cityRetSet = cityRetSet + city
+            }
+          case Left(msg) =>
 
+        }
+    }
+    if(country.isEmpty){
+      compareWithAllCities(input) match {
+        case Right(city) =>
+          if(cityRet.isEmpty && !cityRetSet.contains(city)){
+            cityRet = cityRet + city
+            cityRetSet = cityRetSet + city
+          }
+          else if(!cityRet.isEmpty && !cityRetSet.contains(city)){
+            cityRet = cityRet + ", " +  city
+            cityRetSet = cityRetSet + city
+          }
+        case Left(msg) =>
+      }
+    }
+    if(cityRet.isEmpty)
+      Left("")
+    else
+      Right(cityRet)
+  }
 
+  def filterWithCountryAndState(input: String, country: String): Either[String,String] = {
+    var stateRet = ""
+    var stateRetSet: Set[String] = Set.empty[String]
+    DataMaps.countryStateMap.get(country) match {
+      case Some(stateList) =>
+        for(state <- stateList) {
+          val s = " " + state + " "
+          val stateData = s.r.findFirstIn(input)
+          if (!stateData.isEmpty) {
+            if(stateRet.isEmpty && !stateRetSet.contains(stateData.get)){
+              stateRet = stateRet + stateData.get
+              stateRetSet = stateRetSet + stateData.get
+            }
+            else if(!stateRet.isEmpty && !stateRetSet.contains(stateData.get)){
+              stateRet = stateRet + ", " + stateData.get
+              stateRetSet = stateRetSet + stateData.get
+            }
+          }
+        }
+      case _ =>
+        compareWithAllStates(input) match {
+          case Right(sData) =>
+            if(stateRet.isEmpty && !stateRetSet.contains(sData)){
+              stateRet = stateRet + sData
+              stateRetSet = stateRetSet + sData
+            }
+            else if(!stateRet.isEmpty && !stateRetSet.contains(sData)){
+              stateRet = stateRet + ", " + sData
+              stateRetSet = stateRetSet + sData
+            }
+          case Left(msg) =>
+        }
+    }
+    if(country.isEmpty){
+      compareWithAllStates(input) match {
+        case Right(sData) =>
+          if(stateRet.isEmpty && !stateRetSet.contains(sData)){
+            stateRet = stateRet + sData
+            stateRetSet = stateRetSet + sData
+          }
+          else if(!stateRet.isEmpty && !stateRetSet.contains(sData)){
+            stateRet = stateRet + ", " + sData
+            stateRetSet = stateRetSet + sData
+          }
+        case Left(msg) =>
+      }
+    }
+    if(stateRet.isEmpty)
+      Left("")
+    else
+      Right(stateRet)
+  }
 
   /**
    * Get state details from the input passed, using countryStateMap and country.
@@ -321,7 +439,7 @@ object CleanData {
    * @param country
    * @return
    */
-  def filterWithCountryAndState(input: String,country:String): Either[String,String] ={
+  def filterCountryAndState(input: String,country:String): Either[String,String] ={
     DataMaps.countryStateMap.get(country) match {
       case Some(states) =>
         for(state <- states){
@@ -340,16 +458,12 @@ object CleanData {
     val statesList = DataMaps.countryStateMap.values.toList
     val stateSet = statesList.flatMap(x => x).toSet
     val in = input.split(" ").toList
-    /*for( x <- 0 to in.length - 2) {
-      val searchTerm = in(x) + " " + in(x + 1)
-      if(stateSet.contains(searchTerm)) return Right(searchTerm)
-    }*/
     for( x <- in ){
       if (stateSet.contains(x) && x.length > 3) return Right(x)
     }
     for(a <- stateSet) {
       val s = a + " "
-      var state = s.r.findFirstIn(input)
+      val state = s.r.findFirstIn(input)
       if(!state.isEmpty && a.length > 3)
         return Right(a)
     }
@@ -376,13 +490,12 @@ object CleanData {
     in = in.replace(loc.inCtry, "")
     in = in.replace(loc.city, "")
     in = in.replace(loc.state, "")
-    if(!loc.pinCode.equals(""))
-      in = in.replace(loc.pinCode, " ")
+    in = in.replace(loc.pinCode, "")
     in
   }
 
   def assignPointsForSupplierObj(companyName: String,  st: String, loc: Location, bType: String, remainingSt: String): SellerObj = {
-    var points = 0
+    var points = 0.0
     if (!loc.country.isEmpty) {
       val countriesList = DataMaps.countryMap.values.toSet
       if (countriesList.contains(loc.country))
@@ -410,7 +523,7 @@ object CleanData {
             points += 0
         }
       }
-    }else {
+    } else {
       if (!loc.state.isEmpty) {
         points += statePecWt
       }
@@ -427,8 +540,17 @@ object CleanData {
         points += businessTypePecWt
     }
     if (!companyName.isEmpty) points += companyNamePecWt
-    //println("Point: "+points+" Company : "+ companyName)
-    SellerObj(companyName, st, loc, bType, remainingSt, points)
+    println("Point: "+points+" Company : "+ companyName)
+    val _cmpName = {
+      var c = companyName
+      val bTypeList = businessTypeMap.keys.toSet
+      for(x <- bTypeList) {
+        val a = " " + x + " "
+        c = c.replaceAll(a, "")
+      }
+      c
+    }
+    SellerObj(_cmpName, st, loc, bType, remainingSt, points)
   }
 
   /**
@@ -438,5 +560,5 @@ object CleanData {
   def splitInput(input: String): List[String] = {
     input.toLowerCase().split(" ").toList
   }
-}
 
+}

@@ -15,9 +15,7 @@ case class SuplierInfo(suppinfo: String, corigin: String)
 object MongoTest {
   val dataLimit = 200000;
 
-
-
-  def main(args: Array[String]): Unit = {
+  def test() = {
     val mapDataUrl = SourceDir("./src/main/resources/CountryWithCodes.csv")
     //DataMaps.populateCountryMap(sqlContext, mapDataUrl)
 

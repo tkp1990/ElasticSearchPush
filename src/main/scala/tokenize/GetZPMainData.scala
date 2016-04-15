@@ -21,7 +21,7 @@ import play.api.libs.json._
  */
 class GetZPMainData {
 
-  val INDEX = "tokenizedCA35"
+  val INDEX = "tokenized"
   val orderBy = MongoDBObject("_id" -> 1)
 
   implicit val idReads: Reads[ObjectId] = new Reads[ObjectId] {
@@ -50,7 +50,7 @@ class GetZPMainData {
     populateLocationMaps()
     val finalCount = 52982819
     var skip, c = 0
-    val limit = 10
+    val limit = 100
     var lastId = ""
 
     while (finalCount >= skip ) {
