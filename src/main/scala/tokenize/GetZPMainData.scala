@@ -158,7 +158,7 @@ class GetZPMainData {
   def bulkInsert(jsonList: List[XContentBuilder], client: Client): Unit ={
     val bulkRequest = client.prepareBulk();
     for (x <- jsonList) {
-      println(x.prettyPrint().string())
+      //println(x.prettyPrint().string())
       bulkRequest.add(client.prepareIndex(INDEX, "data")
         .setSource(x)
       );

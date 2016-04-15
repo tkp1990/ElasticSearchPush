@@ -540,7 +540,7 @@ object CleanData {
         points += businessTypePecWt
     }
     if (!companyName.isEmpty) points += companyNamePecWt
-    println("Point: "+points+" Company : "+ companyName)
+    //println("Point: "+points+" Company : "+ companyName)
     val _cmpName = {
       var c = companyName
       val bTypeList = businessTypeMap.keys.toSet
