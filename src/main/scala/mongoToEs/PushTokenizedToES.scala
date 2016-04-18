@@ -2,76 +2,52 @@ package mongoToEs
 
 import java.net.InetAddress
 
-import com.mongodb.casbah.Imports
+import api.mongo.MongoConfig
 import com.mongodb.casbah.Imports._
-import com.mongodb.casbah.commons.ValidBSONType.ObjectId
 import org.elasticsearch.client.Client
 import org.elasticsearch.client.transport.TransportClient
 import org.elasticsearch.common.settings.Settings
 import org.elasticsearch.common.transport.InetSocketTransportAddress
-import org.elasticsearch.node.NodeBuilder._
 import org.elasticsearch.common.xcontent.XContentFactory._
-import play.api.libs.json._
-
+import org.elasticsearch.node.NodeBuilder
+import play.api.libs.json.{JsValue, Json}
+import tokenize.GetZPMainData
 
 /**
- * Created by kenneththomas on 4/6/16.
+ * Created by kenneththomas on 4/11/16.
+ *
  */
-class EsJavaApi {
+class PushTokenizedToES {
 
-  /*implicit val idReads: Reads[ObjectId] = new Reads[ObjectId] {
-    override def reads(json: JsValue): JsResult[Imports.ObjectId] = {
-      json.asOpt[String] map { str =>*/
+  val ID = "_id"
+  val orderBy = MongoDBObject(ID -> 1)
+  val INDEX = "tokenized"
+  val DB = "datacleaning"
+  val COLLECTION = "ZPmainCollection"
 
-  val INDEX = "supplier1"
-  implicit val idReads: Reads[ObjectId] = new Reads[ObjectId] {
-    override def reads(json: JsValue): JsResult[Imports.ObjectId] = {
-      /*val s = json.as[String]
-      println("inside Reads "+s)
-      if (org.bson.types.ObjectId.isValid(s)) JsSuccess(new ObjectId(s)) else JsError("Not a valid ObjectId: " + s)*/
-      (json \ "$oid" ).asOpt[String] map { str =>
-        if (org.bson.types.ObjectId.isValid(str))
-          JsSuccess(new ObjectId(str))
-        else
-          JsError("Invalid ObjectId %s".format(str))
-      } getOrElse (JsError("Value is not an ObjectId"))
-    }
-  }
-  implicit val idWrites = new Writes[ObjectId] {
-    def writes(oId: ObjectId): JsValue = {
-      JsString(oId.toString)
-    }
-  }
 
   def getData() = {
-    val finalCount = 52982819
-    var skip, c = 25562000
-    val limit = 10000
+    val finalCount = getCount()
+    var skip, c = 0
+    val limit = 1000
     var last_id = ""
-
-    while (finalCount >= skip ) {
+    while (finalCount >= skip) {
       println(" Count: "+skip)
-      val orderBy = MongoDBObject("_id" -> 1)
-      val mongoClient = getMongoClient("localhost", 27017)
-      val collection = getCollection("datacleaning", "ZPmainCollection", mongoClient)
+      val mongoClient = MongoConfig.getMongoClient("localhost", 27017)
       try {
-        var jsonList: List[JsObject] = List[JsObject]()
+        val collection = MongoConfig.getCollection(DB, COLLECTION, mongoClient)
         var jsList: List[JsValue] = List[JsValue]()
         if(skip == c){
           val data = collection.find().skip(skip).limit(limit).sort(orderBy)
           skip = skip + limit
-
           for(x <- data) {
             val json = Json.parse(x.toString);
-
-            last_id = (json \ "_id" ).as[String].trim
-            println("id" + last_id)
-            val supplier = (json \ "value").as[JsValue]
-            //val jObj = Json.obj("data" -> supplier)
-            //println(json.toString())
-            //jsonList = jObj :: jsonList
+            last_id = (json \ ID ).as[String].trim
+            //println("id" + last_id)
+            val supplier = (json \ "tokenized").as[JsValue]
             jsList = supplier :: jsList
           }
+          println("id" + last_id)
           val client = getClient(INDEX)
           try{
             bulkInsert(jsList, client)
@@ -81,16 +57,32 @@ class EsJavaApi {
             client.close()
           }
         } else {
-          val q = "_id" $gt (last_id)
+          val q = ID $gt (last_id)
           val data = collection.find(q).limit(limit)
           skip = skip + limit
-
+          val tempId = last_id
           for(x <- data) {
             val json = Json.parse(x.toString);
-            last_id = (json \ "_id" ).as[String].trim
-            val supplier = (json \ "value").as[JsValue]
+            last_id = (json \ ID ).as[String].trim
+            try{
+              val supplier = (json \ "tokenized").as[JsValue]
+              jsList = supplier :: jsList
+            } catch {
+              case e: Exception =>
+                println("Exception: " + e.getMessage)
 
-            jsList = supplier :: jsList
+                val tokenizedObj = new GetZPMainData
+                //tokenizedObj.tokenizeAndSave(last_id, 1000, DB, COLLECTION)
+                val q = ID $gt (last_id)
+                val data = collection.find(q).limit(limit)
+                for(x <- data) {
+                  val json = Json.parse(x.toString);
+                  last_id = (json \ ID).as[String].trim
+                  val supplier = (json \ "tokenized").as[JsValue]
+                  jsList = supplier :: jsList
+                }
+            }
+            println("id" + last_id)
           }
           val client = getClient(INDEX)
           try{
@@ -106,13 +98,21 @@ class EsJavaApi {
           }
         }
       } catch {
-        case e: Exception => println("Exception: "+ e.getMessage)
+        case e: Exception =>
+          e.printStackTrace()
       } finally {
         mongoClient.close()
       }
+
     }
   }
 
+  /**
+   *
+   * @param index - ES Index
+   * @return - ElasticSearch Client
+   *
+   */
   def getClient(index: String): Client = {
     val settings = Settings.settingsBuilder()
       .put("path.home", "/usr/share/elasticsearch")
@@ -122,10 +122,6 @@ class EsJavaApi {
     //val node = nodeBuilder().local(true).settings(settings).node();
     val client = TransportClient.builder().settings(settings).build();
     client.addTransportAddresses(new InetSocketTransportAddress(InetAddress.getByName("localhost"),9300))
-    /*val client = NodeBuilder.nodeBuilder()
-      .client(true)
-      .node()
-      .client();*/
     val indexExists = client.admin().indices().prepareExists(index).execute().actionGet().isExists();
     if (!indexExists) {
       client.admin().indices().prepareCreate(index).execute().actionGet();
@@ -146,14 +142,24 @@ class EsJavaApi {
     }
   }
 
-  def getCollection(_db: String, _collection: String, mongoClient: MongoClient): MongoCollection = {
-    val db = mongoClient(_db)
-    val collection = db(_collection)
-    collection
+  /**
+   *
+   * @return - an Integer value which represent the count of number of records present in a the Collection ZPmainCollection
+   *
+   */
+  def getCount(): Integer = {
+    var count = 0
+    val mongoClient = MongoConfig.getMongoClient("localhost", 27017)
+    try{
+      val collection = MongoConfig.getCollection("datacleaning", "ZPmainCollection", mongoClient)
+      count = collection.count()
+    } catch {
+      case e: Exception =>
+        e.printStackTrace()
+    } finally {
+      mongoClient.close()
+    }
+    count
   }
-
-  def getMongoClient(host: String, port: Int): MongoClient = {
-    MongoClient(host, port)
-  }
-
 }
+
