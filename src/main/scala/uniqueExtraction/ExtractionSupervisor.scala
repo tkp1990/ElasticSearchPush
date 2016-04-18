@@ -6,6 +6,7 @@ import api.mongo.MongoConfig
 import com.mongodb.casbah.Imports._
 import com.mongodb.casbah.MongoCollection
 import play.api.Logger
+import play.api.libs.json.{JsValue, Json}
 import uniqueExtraction.Constants._
 import com.mongodb.casbah.commons.MongoDBObject
 
@@ -36,18 +37,61 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
    * @return
    */
   def getData(lastId: String) = {
+    var lastId = ""
     Logger.debug("Get Data Extraction  Supervisor")
     val mongoClient = MongoConfig.getMongoClient("localhost", 27017)
     try{
       val collection = MongoConfig.getCollection(DB_NAME, COLLECTION_NAME, mongoClient)
+      var dataList: List[ZPMainObj] = List.empty[ZPMainObj]
       if(lastId.isEmpty){
         val data = collection.find().limit(LIMIT).sort(Constants.orderBy)
-        sendForPreProcessing(data)
+
+        for(x <- data) {
+          val json = Json.parse(x.toString);
+          lastId = (json \ "_id" ).as[String].trim
+          val suppData = (json \ "value").as[JsValue]
+          val supName = (suppData \ "supname").as[String].toLowerCase()
+          val conName = (suppData \ "conname").as[String].toLowerCase()
+          val n1Name = (suppData \ "n1name").as[String].toLowerCase()
+          val n2Name = (suppData \ "n2name").as[String].toLowerCase()
+          val obj = ZPMainObj(lastId, supName, conName, n1Name, n2Name)
+          dataList = obj :: dataList
+        }
       } else{
         val q = "_id" $gt (lastId)
         val data = collection.find(q).limit(LIMIT)
-        sendForPreProcessing(data)
+
+        for(x <- data) {
+          val json = Json.parse(x.toString);
+          lastId = (json \ "_id" ).as[String].trim
+          val suppData = (json \ "value").as[JsValue]
+          val supName = (suppData \ "supname").as[String].toLowerCase()
+          val conName = (suppData \ "conname").as[String].toLowerCase()
+          val n1Name = (suppData \ "n1name").as[String].toLowerCase()
+          val n2Name = (suppData \ "n2name").as[String].toLowerCase()
+          val obj = ZPMainObj(lastId, supName, conName, n1Name, n2Name)
+          dataList = obj :: dataList
+        }
       }
+
+      while(count >= 5){
+        Thread.sleep(2000)
+        Logger.debug("Processing waiting for Actor count to reduce!")
+      }
+
+      //Send data to be preprocessed
+      val preProcessSupplierActor = system.actorOf(Props(new PreProcess(system)))
+      preProcessSupplierActor ! CreateJsonList(dataList, SUPPLIER)
+
+      val preProcessConsigneeActor = system.actorOf(Props(new PreProcess(system)))
+      preProcessConsigneeActor ! CreateJsonList(dataList, CONSIGNEE)
+
+      count += 1
+
+      Logger.debug("Last Id being sent back to Supervisor: " + lastId)
+      val supervisorActor = system.actorOf(Props(new ExtractionSupervisor(system)))
+      supervisorActor ! NextBatchRequest(lastId)
+
     } catch {
       case e: Exception =>
         println("Exception "+ e.getMessage)
@@ -57,20 +101,6 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
     }
   }
 
-  /**
-   *
-   * @param data - MongoCursor(data requested from a collection) to be preProcessed
-   */
-  def sendForPreProcessing(data: MongoCursor) = {
-    //TODO call pre-processing actor
-    val supervisorActor = system.actorOf(Props(new ExtractForPreProcessing(system)))
-    while(count >= 5){
-      Thread.sleep(2000)
-      Logger.debug("Processing waiting for Actor count to reduce!")
-    }
-    supervisorActor ! PreProcessData(data)
-    count += 1
-  }
 
   /**
    * Check if Index exists, if does not exists creates it.

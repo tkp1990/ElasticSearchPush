@@ -10,7 +10,7 @@ import uniqueExtraction.Constants._
 /**
  * Created by kenneththomas on 4/18/16.
  */
-class ExtractForPreProcessing(system: ActorSystem) extends Actor{
+/*class ExtractForPreProcessing(system: ActorSystem) extends Actor{
   override def receive: Receive = {
     case data: PreProcessData =>
       getCollectionData(data.data)
@@ -46,4 +46,4 @@ class ExtractForPreProcessing(system: ActorSystem) extends Actor{
     val supervisorActor = system.actorOf(Props(new ExtractionSupervisor(system)))
     supervisorActor ! NextBatchRequest(lastId)
   }
-}
+}*/
