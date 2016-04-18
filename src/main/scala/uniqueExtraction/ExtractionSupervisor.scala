@@ -37,60 +37,65 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
    * @return
    */
   def getData(lastId: String, skip: Integer) = {
+    val finalCount = MongoConfig.getCount(DB_NAME, COLLECTION_NAME)
+    var recCount = skip
     var lastId = ""
     Logger.debug("Get Data Extraction  Supervisor")
     val mongoClient = MongoConfig.getMongoClient("localhost", 27017)
     try{
       val collection = MongoConfig.getCollection(DB_NAME, COLLECTION_NAME, mongoClient)
-      var dataList: List[ZPMainObj] = List.empty[ZPMainObj]
-      if(lastId.isEmpty || lastId.equals("")){
-        val data = collection.find().skip(skip).limit(LIMIT).sort(Constants.orderBy)
+      while(count < finalCount) {
+        var dataList: List[ZPMainObj] = List.empty[ZPMainObj]
+        if(lastId.isEmpty || lastId.equals("")){
+          val data = collection.find().skip(skip).limit(LIMIT).sort(Constants.orderBy)
 
-        for(x <- data) {
-          val json = Json.parse(x.toString);
-          lastId = (json \ "_id" ).as[String].trim
-          val suppData = (json \ "value").as[JsValue]
-          val supName = (suppData \ "supname").as[String].toLowerCase()
-          val conName = (suppData \ "conname").as[String].toLowerCase()
-          val n1Name = (suppData \ "n1name").as[String].toLowerCase()
-          val n2Name = (suppData \ "n2name").as[String].toLowerCase()
-          val obj = ZPMainObj(lastId, supName, conName, n1Name, n2Name)
-          dataList = obj :: dataList
+          for(x <- data) {
+            val json = Json.parse(x.toString);
+            lastId = (json \ "_id" ).as[String].trim
+            val suppData = (json \ "value").as[JsValue]
+            val supName = (suppData \ "supname").as[String].toLowerCase()
+            val conName = (suppData \ "conname").as[String].toLowerCase()
+            val n1Name = (suppData \ "n1name").as[String].toLowerCase()
+            val n2Name = (suppData \ "n2name").as[String].toLowerCase()
+            val obj = ZPMainObj(lastId, supName, conName, n1Name, n2Name)
+            dataList = obj :: dataList
+            count = count + LIMIT
+          }
+        } else{
+          val q = "_id" $gt (lastId)
+          val data = collection.find(q).limit(LIMIT)
+
+          for(x <- data) {
+            val json = Json.parse(x.toString);
+            lastId = (json \ "_id" ).as[String].trim
+            val suppData = (json \ "value").as[JsValue]
+            val supName = (suppData \ "supname").as[String].toLowerCase()
+            val conName = (suppData \ "conname").as[String].toLowerCase()
+            val n1Name = (suppData \ "n1name").as[String].toLowerCase()
+            val n2Name = (suppData \ "n2name").as[String].toLowerCase()
+            val obj = ZPMainObj(lastId, supName, conName, n1Name, n2Name)
+            dataList = obj :: dataList
+            count = count + LIMIT
+          }
         }
-      } else{
-        val q = "_id" $gt (lastId)
-        val data = collection.find(q).limit(LIMIT)
-
-        for(x <- data) {
-          val json = Json.parse(x.toString);
-          lastId = (json \ "_id" ).as[String].trim
-          val suppData = (json \ "value").as[JsValue]
-          val supName = (suppData \ "supname").as[String].toLowerCase()
-          val conName = (suppData \ "conname").as[String].toLowerCase()
-          val n1Name = (suppData \ "n1name").as[String].toLowerCase()
-          val n2Name = (suppData \ "n2name").as[String].toLowerCase()
-          val obj = ZPMainObj(lastId, supName, conName, n1Name, n2Name)
-          dataList = obj :: dataList
+        while(count >= 5){
+          Thread.sleep(2000)
+          Logger.debug("Processing waiting for Actor count to reduce!")
         }
+
+        //Send data to be preprocessed
+        val preProcessSupplierActor = system.actorOf(Props(new PreProcess(system)))
+        preProcessSupplierActor ! CreateJsonList(dataList, SUPPLIER)
+
+        val preProcessConsigneeActor = system.actorOf(Props(new PreProcess(system)))
+        preProcessConsigneeActor ! CreateJsonList(dataList, CONSIGNEE)
+
+        count += 1
+
+        Logger.debug("Last Id being sent back to Supervisor: " + lastId)
+        val supervisorActor = system.actorOf(Props(new ExtractionSupervisor(system)))
+        supervisorActor ! NextBatchRequest(lastId)
       }
-
-      while(count >= 5){
-        Thread.sleep(2000)
-        Logger.debug("Processing waiting for Actor count to reduce!")
-      }
-
-      //Send data to be preprocessed
-      val preProcessSupplierActor = system.actorOf(Props(new PreProcess(system)))
-      preProcessSupplierActor ! CreateJsonList(dataList, SUPPLIER)
-
-      val preProcessConsigneeActor = system.actorOf(Props(new PreProcess(system)))
-      preProcessConsigneeActor ! CreateJsonList(dataList, CONSIGNEE)
-
-      count += 1
-
-      Logger.debug("Last Id being sent back to Supervisor: " + lastId)
-      val supervisorActor = system.actorOf(Props(new ExtractionSupervisor(system)))
-      supervisorActor ! NextBatchRequest(lastId)
 
     } catch {
       case e: Exception =>
