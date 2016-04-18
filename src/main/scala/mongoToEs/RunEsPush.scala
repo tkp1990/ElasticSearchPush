@@ -1,23 +1,26 @@
 
 package mongoToEs
 
+import akka.actor.{ActorSystem, Props}
 import tokenize.{Token, Tokenize, GetZPMainData}
+import uniqueExtraction.{Start, ExtractionSupervisor}
+
 /**
  * Created by kenneththomas on 4/6/16.
  */
 object RunEsPush {
   def main(args: Array[String]) {
-    val obj = new GetZPMainData
+    //val obj = new GetZPMainData
     //val obj = new Tokenize
     try{
-      println("Application Start")
+      /*println("Application Start")
       obj.populateLocationMaps()
       obj.getData()
-      /*var tkList: List[Token] = getDataList()
-      obj.tokenizeAndInsert(tkList)*/
-      //obj.tokenizeObj(tk)
-      //obj.tokenizeName("a w faber-castell u.s/a")
-      println("Application End")
+      println("Application End")*/
+      val system = ActorSystem()
+      val supervisor = system.actorOf(Props(new ExtractionSupervisor(system)))
+      supervisor ! Start(0)
+
     } catch {
       case e: Exception => println("Exception: "+e.getMessage)
         e.printStackTrace()
