@@ -79,7 +79,7 @@ object DataMaps {
           countryMap ++= Map(x(1).trim.toLowerCase() -> x(0).trim.toLowerCase())
           countryMap ++= Map(x(2).trim.toLowerCase() -> x(0).trim.toLowerCase())
         } catch {
-          case e: Exception => e.printStackTrace()
+          case e: Exception => //e.printStackTrace()
         }
       }
     }
