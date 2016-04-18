@@ -63,7 +63,9 @@ class PreProcess(system: ActorSystem) extends Actor{
           case Left(msg) =>
             _name
         }
-        Json.obj("mid" -> obj.id, "p_text" -> fName, "supname" -> obj.supName, "dataFrom" -> extractedFrom)
+        val f2Name = PRE_PROCESS_REGEX.replaceAllIn(fName, " ")
+        val filteredName = f2Name.replace("  ", " ").trim
+        Json.obj("mid" -> obj.id, "p_text" -> filteredName, "supname" -> obj.supName, "dataFrom" -> extractedFrom)
 
       case CONSIGNEE =>
         var extractedFrom = ""
@@ -83,7 +85,9 @@ class PreProcess(system: ActorSystem) extends Actor{
           case Left(msg) =>
             _name
         }
-        Json.obj("mid" -> obj.id, "p_text" -> fName, "conname" -> obj.supName, "dataFrom" -> extractedFrom)
+        val f2Name = PRE_PROCESS_REGEX.replaceAllIn(fName, " ")
+        val filteredName = f2Name.replace("  ", " ").trim
+        Json.obj("mid" -> obj.id, "p_text" -> filteredName, "conname" -> obj.supName, "dataFrom" -> extractedFrom)
     }
   }
 

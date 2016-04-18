@@ -9,8 +9,8 @@ object Constants {
 
   val orderBy = MongoDBObject("_id" -> 1)
   val NAME_UNIQUE_INDEX = "NAME_UNIQUE_INDEX"
-  val DB_NAME = "myDb"//"datacleaning"
-  val COLLECTION_NAME = "myCollection1"//"ZPmainCollection"
+  val DB_NAME = "datacleaning"
+  val COLLECTION_NAME = "ZPmainCollection"
   val LIMIT = 10000
 
   val SUPPLIER = "supplier"
@@ -26,4 +26,7 @@ object Constants {
 
   val UNIQUE_DATA_DB_NAME = "uniqueData"
 
+  //Regular Expressions
+
+  val PRE_PROCESS_REGEX = """[-,\,,.,!,',/]""".r
 }

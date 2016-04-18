@@ -31,6 +31,9 @@ class AddToMongo(system: ActorSystem) extends Actor{
         MongoConfig.insert(x, collection)
       }
     } catch {
+      case dupE: com.mongodb.DuplicateKeyException =>
+        //Do nothing this is expected
+        //Logger.error("Duplicate Key Exception")
       case e: Exception =>
         Logger.error("Exception while adding data to MongoDB: "+e.getMessage)
         e.printStackTrace()
