@@ -17,7 +17,7 @@ import com.mongodb.casbah.commons.MongoDBObject
 class ExtractionSupervisor(system: ActorSystem) extends Actor {
 
   var count = 0
-
+  var recCount = 0
   override def receive: Receive = {
     case obj: Start =>
       Logger.debug("Application Start")
@@ -39,7 +39,7 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
    */
   def getData(lastId: String, skip: Integer) = {
     val finalCount = MongoConfig.getCount(DB_NAME, COLLECTION_NAME)
-    var recCount = skip
+    recCount = skip
     var lastId = ""
     Logger.debug("Get Data Extraction  Supervisor")
     while(recCount < finalCount) {
@@ -47,11 +47,9 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
       val mongoClient = MongoConfig.getMongoClient("localhost", 27017)
       try{
         val collection = MongoConfig.getCollection(DB_NAME, COLLECTION_NAME, mongoClient)
-
         var dataList: List[ZPMainObj] = List.empty[ZPMainObj]
-        if(lastId.isEmpty || lastId.equals("")){
+        if(lastId.equals("")){
           val data = collection.find().skip(skip).limit(LIMIT).sort(Constants.orderBy)
-
           for(x <- data) {
             val json = Json.parse(x.toString);
             lastId = (json \ "_id" ).as[String].trim
@@ -65,10 +63,10 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
             recCount = recCount + LIMIT
           }
           println("Last Id: " + lastId)
-        } else{
+        } else {
+          println("in else")
           val q = "_id" $gt (lastId)
           val data = collection.find(q).limit(LIMIT)
-
           for(x <- data) {
             val json = Json.parse(x.toString);
             lastId = (json \ "_id" ).as[String].trim
