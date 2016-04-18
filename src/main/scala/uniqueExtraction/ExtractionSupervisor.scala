@@ -44,7 +44,8 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
     val mongoClient = MongoConfig.getMongoClient("localhost", 27017)
     try{
       val collection = MongoConfig.getCollection(DB_NAME, COLLECTION_NAME, mongoClient)
-      while(count < finalCount) {
+      while(recCount < finalCount) {
+        println("Count: " + recCount)
         var dataList: List[ZPMainObj] = List.empty[ZPMainObj]
         if(lastId.isEmpty || lastId.equals("")){
           val data = collection.find().skip(skip).limit(LIMIT).sort(Constants.orderBy)
