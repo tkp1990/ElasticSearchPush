@@ -11,6 +11,7 @@ object RunEsPush {
     //val obj = new Tokenize
     try{
       println("Application Start")
+      obj.populateLocationMaps()
       obj.getData()
       /*var tkList: List[Token] = getDataList()
       obj.tokenizeAndInsert(tkList)*/

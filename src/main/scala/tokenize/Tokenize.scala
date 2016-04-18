@@ -119,32 +119,69 @@ class Tokenize {
     jsonList
   }
 
-  /*def tokenizeObj(obj: Token) = {
-    //var jsonObj = Json.obj()
-    var jsonObj = jsonBuilder().startObject()
+  def tokenizeObj(obj: Token): XContentBuilder = {
     val rawSupplierData = obj.supname + " " +obj.supaddr
     val rawConsigneeData = obj.conname + " " +obj.conaddr
     val rawN1Data = obj.n1name + " " +obj.n1addr
     val rawN2Data = obj.n2name + " " +obj.n2addr
-    //adding Supplier Data
-    jsonObj.field("supname", jsonBuilder().startObject().field("raw",obj.supname).field("tokenized", tokenizeName(obj.supname)).endObject())
-    jsonObj.field("supaddr", jsonBuilder().startObject().field("raw",obj.supaddr).field("tokenized", tokenizeAddr(obj.supaddr)).endObject())
-    jsonObj.field("supplier", jsonBuilder().startObject().field("raw",rawSupplierData).field("processed", processData(rawSupplierData)).endObject())
-    //adding consignee data
-    jsonObj.field("conname", jsonBuilder().startObject().field("raw",obj.conname).field("tokenized", tokenizeName(obj.conname)).endObject())
-    jsonObj.field("conaddr", jsonBuilder().startObject().field("raw",obj.conaddr).field("tokenized", tokenizeAddr(obj.conaddr)).endObject())
-    jsonObj.field("consignee", jsonBuilder().startObject().field("raw",rawConsigneeData).field("processed", processData(rawConsigneeData)).endObject())
-    //adding n1 data
-    jsonObj.field("n1name", jsonBuilder().startObject().field("raw",obj.n1name).field("tokenized", tokenizeName(obj.n1name)).endObject())
-    jsonObj.field("n1addr", jsonBuilder().startObject().field("raw",obj.n1addr).field("tokenized", processData(rawN1Data)).endObject())
-    jsonObj.field("n1data", jsonBuilder().startObject().field("raw",rawN1Data).field("processed", processData(rawN1Data)).endObject())
-    //adding n2 data
-    jsonObj.field("n2name", jsonBuilder().startObject().field("raw",obj.n2name).field("tokenized", tokenizeName(obj.n2name)).endObject())
-    jsonObj.field("n2addr", jsonBuilder().startObject().field("raw",obj.n2addr).field("tokenized", processData(rawN2Data)).endObject())
-    jsonObj.field("n2data", jsonBuilder().startObject().field("raw",rawN2Data).field("processed", processData(rawN2Data)).endObject())
+    //var jsonObj = Json.obj()
+    var jsonObj = jsonBuilder().startObject()
 
-    //Json.prettyPrint(jsonObj))
-  }*/
+    //adding Supplier Data
+    jsonObj.startObject("supname")
+      .field("raw",obj.supname)
+      .field("t1", tokenizeName(obj.supname, jsonObj))
+      .endObject()
+    jsonObj.startObject("supaddr")
+      .field("raw",obj.supaddr)
+      .field("t1", tokenizeName(obj.supaddr, jsonObj))
+      .endObject()
+    jsonObj.startObject("supplier")
+      .field("raw",rawSupplierData)
+      .field("p1", processData(rawSupplierData, jsonObj))
+      .endObject()
+    //adding consignee data
+    jsonObj.startObject("conname")
+      .field("raw",obj.conname)
+      .field("t1", tokenizeName(obj.conname, jsonObj))
+      .endObject()
+    jsonObj.startObject("conaddr")
+      .field("raw",obj.conaddr)
+      .field("t1", tokenizeName(obj.conaddr, jsonObj))
+      .endObject()
+    jsonObj.startObject("consignee")
+      .field("raw",rawConsigneeData)
+      .field("p1", processData(rawConsigneeData, jsonObj))
+      .endObject()
+    //adding n1 data
+    jsonObj.startObject("n1name")
+      .field("raw",obj.n1name)
+      .field("t1", tokenizeName(obj.n1name, jsonObj))
+      .endObject()
+    jsonObj.startObject("n1addr")
+      .field("raw",obj.n1addr)
+      .field("t1", tokenizeName(obj.n1addr, jsonObj))
+      .endObject()
+    jsonObj.startObject("n1data")
+      .field("raw",rawN1Data)
+      .field("p1", processData(rawN1Data, jsonObj))
+      .endObject()
+    //adding n2 data
+    jsonObj.startObject("n2name")
+      .field("raw",obj.n2name)
+      .field("t1", tokenizeName(obj.n2name, jsonObj))
+      .endObject()
+    jsonObj.startObject("n2addr")
+      .field("raw",obj.n2addr)
+      .field("t1", tokenizeName(obj.n2addr, jsonObj))
+      .endObject()
+    jsonObj.startObject("n2data")
+      .field("raw",rawN2Data)
+      .field("p1", processData(rawN2Data, jsonObj))
+      .endObject()
+    jsonObj.endObject()
+    jsonObj
+  }
 
   def tokenizeString(str: String, regex: Regex) = {
     val tokenz = str.split(" ")

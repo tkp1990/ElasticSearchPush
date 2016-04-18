@@ -47,9 +47,8 @@ class GetZPMainData {
    *
    */
   def getData () = {
-    populateLocationMaps()
     val finalCount = 52982819
-    var skip, c = 0
+    var skip, c = 3916
     val limit = 100
     var lastId = ""
 
@@ -61,13 +60,13 @@ class GetZPMainData {
         if(skip == c) {
           val data = collection.find().skip(skip).limit(limit).sort(orderBy)
           skip = skip + limit
-          lastId = processBatch(data)
+          lastId = processSequentially(data)
           println("Last Id "+lastId)
         } else {
           val q = "_id" $gt (lastId)
           val data = collection.find(q).limit(limit)
           skip = skip + limit
-          lastId = processBatch(data)
+          lastId = processSequentially(data)
           println("Last Id: "+lastId)
         }
       } catch {
@@ -130,6 +129,37 @@ class GetZPMainData {
     last_id
   }
 
+  def processSequentially(data: MongoCursor): String = {
+    var lastId = ""
+    val tObj = new Tokenize
+    for(x <- data) {
+      try{
+        val json = Json.parse(x.toString);
+        lastId = (json \ "_id" ).as[String].trim
+        val suppData = (json \ "value").as[JsValue]
+        val tSupName = (suppData \ "supname").as[String]
+        val tSupAddr = (suppData \ "supaddr").as[String]
+        val tConName = (suppData \ "conname").as[String]
+        val tConAddr = (suppData \ "conaddr").as[String]
+        val tN1Name = (suppData \ "n1name").as[String]
+        val tN1Addr = (suppData \ "n1addr").as[String]
+        val tN2Name = (suppData \ "n2name").as[String]
+        val tN2Addr = (suppData \ "n2addr").as[String]
+        val obj = Token(lastId, tSupName, tSupAddr, tConName, tConAddr, tN1Name, tN1Addr, tN2Name, tN2Addr)
+        val res = tObj.tokenizeObj(obj)
+        val client = getClient(INDEX)
+        try{
+            esInsert(res, client)
+        } catch {
+          case e: Exception => e.printStackTrace()
+        } finally {
+          client.close()
+        }
+      }
+    }
+    lastId
+  }
+
   /**
    *
    * @param index - ES Index
@@ -167,6 +197,10 @@ class GetZPMainData {
     if (bulkResponse.hasFailures()) {
       // process failures by iterating through each bulk response item
     }
+  }
+
+  def esInsert(jsonObj: XContentBuilder, client: Client) = {
+    val response = client.prepareIndex(INDEX, "tokenized").setSource(jsonObj).get()
   }
 
 
