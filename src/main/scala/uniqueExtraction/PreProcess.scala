@@ -87,7 +87,7 @@ class PreProcess(system: ActorSystem) extends Actor{
         }
         val f2Name = PRE_PROCESS_REGEX.replaceAllIn(fName, " ")
         val filteredName = f2Name.replace("  ", " ").trim
-        Json.obj("mid" -> obj.id, "p_text" -> filteredName, "conname" -> obj.supName, "dataFrom" -> extractedFrom)
+        Json.obj("mid" -> obj.id, "p_text" -> filteredName, "conname" -> obj.conName, "dataFrom" -> extractedFrom)
     }
   }
 
