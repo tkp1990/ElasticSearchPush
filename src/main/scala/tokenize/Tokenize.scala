@@ -6,6 +6,7 @@ import org.elasticsearch.common.xcontent.XContentFactory._
 import play.api.libs.json.{JsString, JsObject, Json}
 
 import scala.util.matching.Regex
+import uniqueExtraction.Constants._
 
 /**
  * Created by kenneththomas on 4/10/16.
@@ -319,8 +320,28 @@ class Tokenize {
 
     //jsonObj
   }
+}
 
-
+object Tokenize {
+  def getTokens(input: String, level: String): List[String] = {
+    var tokens: List[String] = List.empty[String]
+    val inList = input.split(" ")
+    level match {
+      case SINGLE_LEVEL_TOKENS =>
+        tokens = inList.toList
+      case DOUBLE_LEVEL_TOKENS =>
+        for(x <- 0 to inList.length - 2){
+          val st = inList(x).trim + " " + inList(x + 1).trim
+          tokens = st :: tokens
+        }
+      case TRIPLE_LEVEL_TOKENS =>
+        for(x <- 0 to inList.length - 3){
+          val st = inList(x).trim + " " + inList(x + 1).trim + " " + inList(x + 2).trim
+          tokens = st :: tokens
+        }
+    }
+    tokens
+  }
 }
 
 case class NameData()

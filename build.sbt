@@ -19,7 +19,8 @@ libraryDependencies ++= Seq(
   "com.typesafe.play" % "play-json_2.11" % "2.5.0" ,
   "com.github.tototoshi" %% "scala-csv" % "1.2.2",
   "org.jsoup" % "jsoup" % "1.8.3",
-  "org.elasticsearch" % "elasticsearch" % "2.3.0" excludeAll ExclusionRule(organization = "javax.servlet")
+  "com.typesafe.play" % "play_2.11" % "2.5.2",
+"org.elasticsearch" % "elasticsearch" % "2.3.0" excludeAll ExclusionRule(organization = "javax.servlet")
 )
 
 

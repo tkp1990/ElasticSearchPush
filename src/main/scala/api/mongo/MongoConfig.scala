@@ -138,4 +138,16 @@ object MongoConfig {
     }
     count
   }
+
+  /**
+   * Insert data into MongoDB Collection
+   *
+   * @param obj - Document to be added to a collection
+   * @param collection - Collection to which data has to be added
+   * @return - Write Result
+   */
+  def insert(obj: JsObject, collection: MongoCollection): WriteResult = {
+    val res = collection.insert(MongoDBObject(obj.toString()))
+    res
+  }
 }
