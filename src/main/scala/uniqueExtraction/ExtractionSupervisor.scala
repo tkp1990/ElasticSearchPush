@@ -34,13 +34,13 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
    *
    * Get data from mongo Collection and forwards to be preprocessed
    *
-   * @param lastId - the Id of the last document in the previous collection.
+   * @param _lastId - the Id of the last document in the previous collection.
    * @return
    */
-  def getData(lastId: String, skip: Integer) = {
+  def getData(_lastId: String, skip: Integer) = {
     val finalCount = MongoConfig.getCount(DB_NAME, COLLECTION_NAME)
     recCount = skip
-    var lastId = ""
+    var lastId = _lastId
     Logger.debug("Get Data Extraction  Supervisor")
     while(recCount < finalCount) {
       println("count: "+ recCount)
