@@ -21,12 +21,12 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
   override def receive: Receive = {
     case obj: Start =>
       Logger.debug("Application Start")
-      getData("")
+      getData("", obj.skip)
     case lastId: NextBatchRequest =>
       if(count > 0)
         count -= 1
       Logger.debug("Getting next set of Documents starting from ID: "+lastId.lastId)
-      getData(lastId.lastId)
+      getData(lastId.lastId, 0)
   }
 
   /**
@@ -36,15 +36,15 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
    * @param lastId - the Id of the last document in the previous collection.
    * @return
    */
-  def getData(lastId: String) = {
+  def getData(lastId: String, skip: Integer) = {
     var lastId = ""
     Logger.debug("Get Data Extraction  Supervisor")
     val mongoClient = MongoConfig.getMongoClient("localhost", 27017)
     try{
       val collection = MongoConfig.getCollection(DB_NAME, COLLECTION_NAME, mongoClient)
       var dataList: List[ZPMainObj] = List.empty[ZPMainObj]
-      if(lastId.isEmpty){
-        val data = collection.find().limit(LIMIT).sort(Constants.orderBy)
+      if(lastId.isEmpty || lastId.equals("")){
+        val data = collection.find().skip(skip).limit(LIMIT).sort(Constants.orderBy)
 
         for(x <- data) {
           val json = Json.parse(x.toString);

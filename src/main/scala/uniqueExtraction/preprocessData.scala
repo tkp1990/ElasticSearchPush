@@ -3,14 +3,13 @@ package uniqueExtraction
 import api.mongo.MongoConfig
 import com.mongodb.casbah.Imports._
 import play.api.libs.json.{JsValue, Json}
-import com.mongodb.casbah.WriteConcern
 import scala.collection.immutable.HashMap
 import com.mongodb.casbah.commons.MongoDBObject
 
 /**
  * Created by kenneththomas on 4/18/16.
  */
-class preprocessData {
+class PreprocessData {
 
   val businessTypeMap: HashMap[String, String] = HashMap("ltd" -> "LTD", "limited" -> "Limited", "pvt ltd" -> "Private Limited",
     "india pvt ltd" -> "India Private Limited", "llp" -> "LLP", "inc" -> "Inc", "co" -> "cooperated","corp" -> "cooperated", "llc" -> "LLC",

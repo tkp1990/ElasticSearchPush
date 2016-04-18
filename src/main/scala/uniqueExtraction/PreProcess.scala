@@ -4,6 +4,7 @@ import akka.actor.{Props, ActorSystem, Actor}
 import akka.actor.Actor.Receive
 import com.mongodb.casbah.MongoCursor
 import dataCleaning.CleanData
+import play.api.Logger
 import uniqueExtraction.Constants._
 import play.api.libs.json.{JsObject, JsValue, Json}
 
@@ -14,6 +15,7 @@ class PreProcess(system: ActorSystem) extends Actor{
 
   override def receive: Receive = {
     case data: CreateJsonList =>
+      Logger.debug("Preprocessing Data")
       preProcessData(data.data, data.process)
   }
 
