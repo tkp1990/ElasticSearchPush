@@ -7,6 +7,8 @@ import com.mongodb.casbah.Imports._
 import com.mongodb.casbah.MongoCollection
 import play.api.Logger
 import uniqueExtraction.Constants._
+import com.mongodb.casbah.commons.MongoDBObject
+
 
 /**
  * Created by kenneththomas on 4/18/16.
@@ -81,7 +83,7 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
       if(index){
         println("Index already Exists")
       } else {
-        collection.createIndex("p_text", NAME_UNIQUE_INDEX, true)
+        collection.createIndex(MongoDBObject("p_text"), NAME_UNIQUE_INDEX, true)
       }
     } catch{
       case e: Exception =>
@@ -95,13 +97,13 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
   /**
    *
    * @param db - database name
-   * @param collection - collection name
+   * @param _collection - collection name
    * @return - number of documents in Collection
    */
-  def getCount(db: String, collection: String): Int = {
+  def getCount(db: String, _collection: String): Int = {
     val mongoClient = MongoConfig.getMongoClient("localhost", 27017)
     try {
-      val collection = MongoConfig.getCollection(db, collection, mongoClient)
+      val collection = MongoConfig.getCollection(db, _collection, mongoClient)
       collection.count()
     } catch {
       case e: Exception =>

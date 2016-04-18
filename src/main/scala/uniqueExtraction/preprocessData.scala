@@ -3,8 +3,9 @@ package uniqueExtraction
 import api.mongo.MongoConfig
 import com.mongodb.casbah.Imports._
 import play.api.libs.json.{JsValue, Json}
-
+import com.mongodb.casbah.WriteConcern
 import scala.collection.immutable.HashMap
+import com.mongodb.casbah.commons.MongoDBObject
 
 /**
  * Created by kenneththomas on 4/18/16.
@@ -67,7 +68,7 @@ class preprocessData {
     if(index){
       println("Index already Exists")
     } else {
-      collection.createIndex("p_text", Constants.NAME_UNIQUE_INDEX, true)
+      collection.createIndex(MongoDBObject("p_text"), Constants.NAME_UNIQUE_INDEX, true)
     }
   }
 

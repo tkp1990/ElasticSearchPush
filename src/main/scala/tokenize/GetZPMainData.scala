@@ -155,6 +155,8 @@ class GetZPMainData {
         } finally {
           client.close()
         }
+      } catch {
+        case e: Exception => e.printStackTrace()
       }
     }
     lastId
