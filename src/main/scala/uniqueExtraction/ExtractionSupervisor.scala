@@ -25,6 +25,7 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
     case lastId: NextBatchRequest =>
       if(count > 0)
         count -= 1
+      println("Getting next set of Documents starting from ID: "+lastId.lastId)
       Logger.debug("Getting next set of Documents starting from ID: "+lastId.lastId)
       getData(lastId.lastId, 0)
   }
@@ -41,11 +42,11 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
     var recCount = skip
     var lastId = ""
     Logger.debug("Get Data Extraction  Supervisor")
-    val mongoClient = MongoConfig.getMongoClient("localhost", 27017)
-    try{
-      val collection = MongoConfig.getCollection(DB_NAME, COLLECTION_NAME, mongoClient)
-      while(recCount < finalCount) {
-        println("Count: " + recCount)
+    while(recCount < finalCount) {
+      val mongoClient = MongoConfig.getMongoClient("localhost", 27017)
+      try{
+        val collection = MongoConfig.getCollection(DB_NAME, COLLECTION_NAME, mongoClient)
+
         var dataList: List[ZPMainObj] = List.empty[ZPMainObj]
         if(lastId.isEmpty || lastId.equals("")){
           val data = collection.find().skip(skip).limit(LIMIT).sort(Constants.orderBy)
@@ -62,6 +63,7 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
             dataList = obj :: dataList
             count = count + LIMIT
           }
+          println("Last Id: " + lastId)
         } else{
           val q = "_id" $gt (lastId)
           val data = collection.find(q).limit(LIMIT)
@@ -78,7 +80,9 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
             dataList = obj :: dataList
             count = count + LIMIT
           }
+          println("Last Id: " + lastId)
         }
+
         while(count >= 5){
           Thread.sleep(2000)
           Logger.debug("Processing waiting for Actor count to reduce!")
@@ -96,15 +100,16 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
         Logger.debug("Last Id being sent back to Supervisor: " + lastId)
         val supervisorActor = system.actorOf(Props(new ExtractionSupervisor(system)))
         supervisorActor ! NextBatchRequest(lastId)
-      }
 
-    } catch {
-      case e: Exception =>
-        println("Exception "+ e.getMessage)
-        e.printStackTrace()
-    } finally {
-      mongoClient.close()
+      } catch {
+        case e: Exception =>
+          println("Exception "+ e.getMessage)
+          e.printStackTrace()
+      } finally {
+        mongoClient.close()
+      }
     }
+
   }
 
 
