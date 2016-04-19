@@ -32,10 +32,6 @@ class PreProcess(system: ActorSystem) extends Actor{
       jsonList = obj :: jsonList
     }
 
-    Logger.debug("Last Id being sent back to Supervisor: " + lastId)
-    val supervisorActor = system.actorOf(Props(new ExtractionSupervisor(system)))
-    supervisorActor ! NextBatchRequest(lastId)
-
     val mongoAddActor = system.actorOf(Props(new AddToMongo(system)))
     mongoAddActor ! Insert(jsonList, process)
   }

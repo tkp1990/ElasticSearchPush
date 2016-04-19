@@ -82,6 +82,10 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
           println("Last Id: " + lastId)
         }
 
+        Logger.debug("Last Id being sent back to Supervisor: " + lastId)
+        val supervisorActor = system.actorOf(Props(new ExtractionSupervisor(system)))
+        supervisorActor ! NextBatchRequest(lastId)
+
         while(count >= 5){
           Thread.sleep(2000)
           println("process waiting for Active actor count to reduce")
