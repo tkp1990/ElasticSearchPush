@@ -28,13 +28,51 @@ class PreProcess(system: ActorSystem) extends Actor{
   def preProcessData(dataList: List[ZPMainObj], process: String, lastId: String) = {
     var jsonList: List[JsObject] = List.empty[JsObject]
     for(x <- dataList) {
-      val obj = cleanName(x, process)
+      val obj = checkForuniqueWithoutCleaning(x, process)
       jsonList = obj :: jsonList
     }
 
     val mongoAddActor = system.actorOf(Props(new AddToMongo(system)))
     mongoAddActor ! Insert(jsonList, process)
   }
+
+
+  /**
+   * A test method used to see how many unique records are available without cleaning the data
+   *
+   * @param obj - ZPMainObj, contains the data extracted from the Document
+   * @param process - process from supplier or consignee
+   */
+  def checkForuniqueWithoutCleaning(obj: ZPMainObj, process: String) = {
+    process match {
+      case SUPPLIER =>
+        var extractedFrom = ""
+        var _name = obj.supName
+        extractedFrom = "supname"
+        if(_name.isEmpty || _name.contains(LOGISTICS)){
+          _name = obj.n1Name
+          extractedFrom = "n1name"
+        } else if (_name.isEmpty) {
+          _name = obj.n2Name
+          extractedFrom = "n2name"
+        }
+        Json.obj("mid" -> obj.id, "p_text" -> _name, "supname" -> obj.supName, "dataFrom" -> extractedFrom)
+
+      case CONSIGNEE =>
+        var extractedFrom = ""
+        var _name = obj.conName
+        extractedFrom = "conname"
+        if(_name.isEmpty || _name.contains(LOGISTICS)){
+          _name = obj.n1Name
+          extractedFrom = "n1name"
+        } else if (_name.isEmpty) {
+          _name = obj.n2Name
+          extractedFrom = "n2name"
+        }
+        Json.obj("mid" -> obj.id, "p_text" -> _name, "conname" -> obj.conName, "dataFrom" -> extractedFrom)
+    }
+  }
+
 
   /**
    *
