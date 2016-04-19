@@ -16,7 +16,7 @@ class PreProcess(system: ActorSystem) extends Actor{
   override def receive: Receive = {
     case data: CreateJsonList =>
       Logger.debug("Preprocessing Data")
-      preProcessData(data.data, data.process)
+      preProcessData(data.data, data.process, data.lastId)
   }
 
 
@@ -25,12 +25,17 @@ class PreProcess(system: ActorSystem) extends Actor{
    *
    * @param dataList - List of ZPMain Onjects
    */
-  def preProcessData(dataList: List[ZPMainObj], process: String) = {
+  def preProcessData(dataList: List[ZPMainObj], process: String, lastId: String) = {
     var jsonList: List[JsObject] = List.empty[JsObject]
     for(x <- dataList) {
       val obj = cleanName(x, process)
       jsonList = obj :: jsonList
     }
+
+    Logger.debug("Last Id being sent back to Supervisor: " + lastId)
+    val supervisorActor = system.actorOf(Props(new ExtractionSupervisor(system)))
+    supervisorActor ! NextBatchRequest(lastId)
+
     val mongoAddActor = system.actorOf(Props(new AddToMongo(system)))
     mongoAddActor ! Insert(jsonList, process)
   }

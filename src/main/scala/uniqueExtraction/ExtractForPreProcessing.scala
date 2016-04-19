@@ -36,10 +36,10 @@ class ExtractForPreProcessing(system: ActorSystem) extends Actor{
     }
     //Send data to be preprocessed
     val preProcessSupplierActor = system.actorOf(Props(new PreProcess(system)))
-    preProcessSupplierActor ! CreateJsonList(dataList, SUPPLIER)
+    preProcessSupplierActor ! CreateJsonList(dataList, SUPPLIER, lastId)
 
     val preProcessConsigneeActor = system.actorOf(Props(new PreProcess(system)))
-    preProcessConsigneeActor ! CreateJsonList(dataList, CONSIGNEE)
+    preProcessConsigneeActor ! CreateJsonList(dataList, CONSIGNEE, lastId)
 
     //Send lastId back to Supervisor
     Logger.debug("Last Id being sent back to Supervisor: " + lastId)

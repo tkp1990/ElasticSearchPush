@@ -24,7 +24,7 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
       getData("", obj.skip)
     case lastId: NextBatchRequest =>
       if(count > 0)
-        count -= 1
+        count = count - 1
       println("Getting next set of Documents starting from ID: "+lastId.lastId)
       Logger.debug("Getting next set of Documents starting from ID: "+lastId.lastId)
       getData(lastId.lastId, 0)
@@ -39,7 +39,7 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
    */
   def getData(_lastId: String, skip: Integer) = {
     val finalCount = MongoConfig.getCount(DB_NAME, COLLECTION_NAME)
-    recCount = skip
+    recCount = recCount + skip
     var lastId = _lastId
     Logger.debug("Get Data Extraction  Supervisor")
     while(recCount < finalCount) {
@@ -60,11 +60,11 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
             val n2Name = (suppData \ "n2name").as[String].toLowerCase()
             val obj = ZPMainObj(lastId, supName, conName, n1Name, n2Name)
             dataList = obj :: dataList
-            recCount = recCount + LIMIT
           }
+          recCount = recCount + LIMIT
           println("Last Id: " + lastId)
         } else {
-          println("in else")
+          //println("in else")
           val q = "_id" $gt (lastId)
           val data = collection.find(q).limit(LIMIT)
           for(x <- data) {
@@ -77,8 +77,8 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
             val n2Name = (suppData \ "n2name").as[String].toLowerCase()
             val obj = ZPMainObj(lastId, supName, conName, n1Name, n2Name)
             dataList = obj :: dataList
-            recCount = recCount + LIMIT
           }
+          recCount = recCount + LIMIT
           println("Last Id: " + lastId)
         }
 
@@ -90,16 +90,12 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
 
         //Send data to be preprocessed
         val preProcessSupplierActor = system.actorOf(Props(new PreProcess(system)))
-        preProcessSupplierActor ! CreateJsonList(dataList, SUPPLIER)
+        preProcessSupplierActor ! CreateJsonList(dataList, SUPPLIER, lastId)
 
         val preProcessConsigneeActor = system.actorOf(Props(new PreProcess(system)))
-        preProcessConsigneeActor ! CreateJsonList(dataList, CONSIGNEE)
+        preProcessConsigneeActor ! CreateJsonList(dataList, CONSIGNEE, lastId)
 
         count += 1
-
-        Logger.debug("Last Id being sent back to Supervisor: " + lastId)
-        val supervisorActor = system.actorOf(Props(new ExtractionSupervisor(system)))
-        supervisorActor ! NextBatchRequest(lastId)
 
       } catch {
         case e: Exception =>
