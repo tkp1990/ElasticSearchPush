@@ -42,7 +42,7 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
     recCount = recCount + skip
     var lastId = _lastId
     Logger.debug("Get Data Extraction  Supervisor")
-    while(recCount < finalCount) {
+    if(recCount < finalCount) {
       println("count: "+ recCount)
       val mongoClient = MongoConfig.getMongoClient("localhost", 27017)
       try{
@@ -61,7 +61,6 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
             val obj = ZPMainObj(lastId, supName, conName, n1Name, n2Name)
             dataList = obj :: dataList
           }
-          recCount = recCount + LIMIT
           println("Last Id: " + lastId)
         } else {
           //println("in else")
@@ -78,10 +77,9 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
             val obj = ZPMainObj(lastId, supName, conName, n1Name, n2Name)
             dataList = obj :: dataList
           }
-          recCount = recCount + LIMIT
           println("Last Id: " + lastId)
         }
-
+        recCount = recCount + LIMIT
         /*while(count >= 5){
           Thread.sleep(2000)
           println("process waiting for Active actor count to reduce")
