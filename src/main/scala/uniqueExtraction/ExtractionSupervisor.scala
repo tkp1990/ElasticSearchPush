@@ -82,15 +82,11 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
           println("Last Id: " + lastId)
         }
 
-        Logger.debug("Last Id being sent back to Supervisor: " + lastId)
-        val supervisorActor = system.actorOf(Props(new ExtractionSupervisor(system)))
-        supervisorActor ! NextBatchRequest(lastId)
-
-        while(count >= 5){
+        /*while(count >= 5){
           Thread.sleep(2000)
           println("process waiting for Active actor count to reduce")
           Logger.debug("Processing waiting for Actor count to reduce!")
-        }
+        }*/
 
         //Send data to be preprocessed
         val preProcessSupplierActor = system.actorOf(Props(new PreProcess(system)))
@@ -100,6 +96,10 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
         preProcessConsigneeActor ! CreateJsonList(dataList, CONSIGNEE, lastId)
 
         count += 1
+
+        Logger.debug("Last Id being sent back to Supervisor: " + lastId)
+        val supervisorActor = system.actorOf(Props(new ExtractionSupervisor(system)))
+        supervisorActor ! NextBatchRequest(lastId)
 
       } catch {
         case e: Exception =>
