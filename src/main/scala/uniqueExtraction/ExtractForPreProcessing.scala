@@ -44,6 +44,6 @@ class ExtractForPreProcessing(system: ActorSystem) extends Actor{
     //Send lastId back to Supervisor
     Logger.debug("Last Id being sent back to Supervisor: " + lastId)
     val supervisorActor = system.actorOf(Props(new ExtractionSupervisor(system)))
-    supervisorActor ! NextBatchRequest(lastId)
+    supervisorActor ! NextBatchRequest(lastId, supervisorActor)
   }
 }
