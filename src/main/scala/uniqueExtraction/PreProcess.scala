@@ -29,7 +29,7 @@ class PreProcess(system: ActorSystem) extends Actor{
     var jsonList: List[JsObject] = List.empty[JsObject]
     println("List Length: "+dataList.length)
     for(x <- dataList) {
-      val obj = checkForuniqueWithoutCleaning(x, process)
+      val obj = cleanName(x, process)
       jsonList = obj :: jsonList
     }
 
