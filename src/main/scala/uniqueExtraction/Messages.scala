@@ -1,5 +1,6 @@
 package uniqueExtraction
 
+import akka.actor.ActorRef
 import com.mongodb.casbah.MongoCursor
 import play.api.libs.json.JsObject
 
@@ -12,7 +13,7 @@ class Messages {
 
 case class PreProcessData(data: MongoCursor)
 
-case class Start(skip: Integer)
+case class Start(skip: Integer, supervisor: ActorRef)
 
 case class CreateJsonList(data: List[ZPMainObj], process: String, lastId: String)
 
@@ -20,4 +21,4 @@ case class Insert(jsonList: List[JsObject], process: String)
 
 case class ZPMainObj(id: String, supName: String, conName: String, n1Name: String, n2Name: String)
 
-case class NextBatchRequest(lastId: String)
+case class NextBatchRequest(lastId: String, supervisor: ActorRef)

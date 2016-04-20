@@ -1,6 +1,6 @@
 package uniqueExtraction
 
-import akka.actor.{Props, ActorSystem, Actor}
+import akka.actor.{ActorRef, Props, ActorSystem, Actor}
 import akka.actor.Actor.Receive
 import api.mongo.MongoConfig
 import com.mongodb.casbah.Imports._
@@ -21,13 +21,13 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
   override def receive: Receive = {
     case obj: Start =>
       Logger.debug("Application Start")
-      getData("", obj.skip)
+      getData("", obj.skip, obj.supervisor)
     case lastId: NextBatchRequest =>
-      if(count > 0)
-        count = count - 1
+      /*if(count > 0)
+        count = count - 1*/
       println("Getting next set of Documents starting from ID: "+lastId.lastId)
       Logger.debug("Getting next set of Documents starting from ID: "+lastId.lastId)
-      getData(lastId.lastId, 0)
+      getData(lastId.lastId, 0, lastId.supervisor)
   }
 
   /**
@@ -37,9 +37,9 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
    * @param _lastId - the Id of the last document in the previous collection.
    * @return
    */
-  def getData(_lastId: String, skip: Integer) = {
+  def getData(_lastId: String, skip: Integer, supervisor: ActorRef) = {
     val finalCount = MongoConfig.getCount(DB_NAME, COLLECTION_NAME)
-    recCount = recCount + skip
+    //recCount = recCount + skip
     var lastId = _lastId
     Logger.debug("Get Data Extraction  Supervisor")
     if(recCount < finalCount) {
@@ -48,8 +48,8 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
       try{
         val collection = MongoConfig.getCollection(DB_NAME, COLLECTION_NAME, mongoClient)
         var dataList: List[ZPMainObj] = List.empty[ZPMainObj]
-        if(lastId.equals("")){
-          val data = collection.find().skip(skip).limit(LIMIT).sort(Constants.orderBy)
+        if(lastId.equals("") && skip == 0){
+          val data = collection.find().limit(LIMIT).sort(Constants.orderBy)
           for(x <- data) {
             val json = Json.parse(x.toString);
             lastId = (json \ "_id" ).as[String].trim
@@ -61,6 +61,22 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
             val obj = ZPMainObj(lastId, supName, conName, n1Name, n2Name)
             dataList = obj :: dataList
           }
+          recCount = recCount + LIMIT
+          println("Last Id: " + lastId)
+        } else if(lastId.equals("") && skip > 0) {
+          val data = collection.find().skip(skip).limit(LIMIT).sort(Constants.orderBy)
+          for(x <- data) {
+            val json = Json.parse(x.toString);
+            lastId = (json \ "_id").as[String].trim
+            val suppData = (json \ "value").as[JsValue]
+            val supName = (suppData \ "supname").as[String].toLowerCase()
+            val conName = (suppData \ "conname").as[String].toLowerCase()
+            val n1Name = (suppData \ "n1name").as[String].toLowerCase()
+            val n2Name = (suppData \ "n2name").as[String].toLowerCase()
+            val obj = ZPMainObj(lastId, supName, conName, n1Name, n2Name)
+            dataList = obj :: dataList
+          }
+          recCount = recCount + LIMIT
           println("Last Id: " + lastId)
         } else {
           //println("in else")
@@ -77,9 +93,9 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
             val obj = ZPMainObj(lastId, supName, conName, n1Name, n2Name)
             dataList = obj :: dataList
           }
+          recCount = recCount + LIMIT
           println("Last Id: " + lastId)
         }
-        recCount = recCount + LIMIT
         /*while(count >= 5){
           Thread.sleep(2000)
           println("process waiting for Active actor count to reduce")
@@ -93,11 +109,11 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
         val preProcessConsigneeActor = system.actorOf(Props(new PreProcess(system)))
         preProcessConsigneeActor ! CreateJsonList(dataList, CONSIGNEE, lastId)
 
-        count += 1
+        //count += 1
 
         Logger.debug("Last Id being sent back to Supervisor: " + lastId)
-        val supervisorActor = system.actorOf(Props(new ExtractionSupervisor(system)))
-        supervisorActor ! NextBatchRequest(lastId)
+        //val supervisorActor = system.actorOf(Props(new ExtractionSupervisor(system)))
+        supervisor ! NextBatchRequest(lastId, supervisor)
 
       } catch {
         case e: Exception =>

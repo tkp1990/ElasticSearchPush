@@ -19,7 +19,7 @@ object RunEsPush {
       println("Application End")*/
       val system = ActorSystem()
       val supervisor = system.actorOf(Props(new ExtractionSupervisor(system)))
-      supervisor ! Start(0)
+      supervisor ! Start(0, supervisor)
 
     } catch {
       case e: Exception => println("Exception: "+e.getMessage)
