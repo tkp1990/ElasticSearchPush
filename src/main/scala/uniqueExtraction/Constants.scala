@@ -13,8 +13,8 @@ object Constants {
   val COLLECTION_NAME = "ZPmainCollection"
   val LIMIT = 10000
 
-  val SUPPLIER = "supplier1"
-  val CONSIGNEE = "consignee1"
+  val SUPPLIER = "supplier"
+  val CONSIGNEE = "consignee"
 
   val SINGLE_LEVEL_TOKENS = "single"
   val DOUBLE_LEVEL_TOKENS = "double"
