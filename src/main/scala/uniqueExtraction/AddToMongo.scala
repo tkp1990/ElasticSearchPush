@@ -42,7 +42,4 @@ class AddToMongo(system: ActorSystem) extends Actor{
     }
   }
 
-
-
-
 }

@@ -21,13 +21,13 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
   override def receive: Receive = {
     case obj: Start =>
       Logger.debug("Application Start")
-      getData("", obj.skip, obj.supervisor)
+      getData("", obj.skip, obj.supervisor, obj.preProcessActor)
     case lastId: NextBatchRequest =>
       /*if(count > 0)
         count = count - 1*/
       println("Getting next set of Documents starting from ID: "+lastId.lastId)
       Logger.debug("Getting next set of Documents starting from ID: "+lastId.lastId)
-      getData(lastId.lastId, 0, lastId.supervisor)
+      getData(lastId.lastId, 0, lastId.supervisor, lastId.preProcessActor)
   }
 
   /**
@@ -37,7 +37,7 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
    * @param _lastId - the Id of the last document in the previous collection.
    * @return
    */
-  def getData(_lastId: String, skip: Integer, supervisor: ActorRef) = {
+  def getData(_lastId: String, skip: Integer, supervisor: ActorRef, preProcessActor: ActorRef) = {
     val finalCount = MongoConfig.getCount(DB_NAME, COLLECTION_NAME)
     //recCount = recCount + skip
     var lastId = _lastId
@@ -49,7 +49,7 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
         val collection = MongoConfig.getCollection(DB_NAME, COLLECTION_NAME, mongoClient)
         var dataList: List[ZPMainObj] = List.empty[ZPMainObj]
         if(lastId.equals("") && skip == 0){
-          val data = collection.find().limit(LIMIT).sort(Constants.orderBy)
+          val data = collection.find().limit(LIMIT)
           for(x <- data) {
             val json = Json.parse(x.toString);
             lastId = (json \ "_id" ).as[String].trim
@@ -64,7 +64,7 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
           recCount = recCount + LIMIT
           println("Last Id: " + lastId)
         } else if(lastId.equals("") && skip > 0) {
-          val data = collection.find().skip(skip).limit(LIMIT).sort(Constants.orderBy)
+          val data = collection.find().skip(skip).limit(LIMIT)
           for(x <- data) {
             val json = Json.parse(x.toString);
             lastId = (json \ "_id").as[String].trim
@@ -103,17 +103,16 @@ class ExtractionSupervisor(system: ActorSystem) extends Actor {
         }*/
 
         //Send data to be preprocessed
-        val preProcessSupplierActor = system.actorOf(Props(new PreProcess(system)))
-        preProcessSupplierActor ! CreateJsonList(dataList, SUPPLIER, lastId)
 
-        val preProcessConsigneeActor = system.actorOf(Props(new PreProcess(system)))
-        preProcessConsigneeActor ! CreateJsonList(dataList, CONSIGNEE, lastId)
+        preProcessActor ! CreateJsonList(dataList, SUPPLIER, lastId)
+
+        preProcessActor ! CreateJsonList(dataList, CONSIGNEE, lastId)
 
         //count += 1
 
         Logger.debug("Last Id being sent back to Supervisor: " + lastId)
         //val supervisorActor = system.actorOf(Props(new ExtractionSupervisor(system)))
-        supervisor ! NextBatchRequest(lastId, supervisor)
+        supervisor ! NextBatchRequest(lastId, supervisor, preProcessActor)
 
       } catch {
         case e: Exception =>

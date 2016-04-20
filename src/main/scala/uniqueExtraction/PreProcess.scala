@@ -27,6 +27,7 @@ class PreProcess(system: ActorSystem) extends Actor{
    */
   def preProcessData(dataList: List[ZPMainObj], process: String, lastId: String) = {
     var jsonList: List[JsObject] = List.empty[JsObject]
+    println("List Length: "+dataList.length)
     for(x <- dataList) {
       val obj = checkForuniqueWithoutCleaning(x, process)
       jsonList = obj :: jsonList
@@ -43,7 +44,7 @@ class PreProcess(system: ActorSystem) extends Actor{
    * @param obj - ZPMainObj, contains the data extracted from the Document
    * @param process - process from supplier or consignee
    */
-  def checkForuniqueWithoutCleaning(obj: ZPMainObj, process: String) = {
+  def checkForuniqueWithoutCleaning(obj: ZPMainObj, process: String): JsObject = {
     process match {
       case SUPPLIER =>
         var extractedFrom = ""

@@ -1,9 +1,9 @@
 
 package mongoToEs
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.{Props, ActorSystem}
 import tokenize.{Token, Tokenize, GetZPMainData}
-import uniqueExtraction.{Start, ExtractionSupervisor}
+import uniqueExtraction.{PreProcess, Start, ExtractionSupervisor}
 
 /**
  * Created by kenneththomas on 4/6/16.
@@ -19,7 +19,8 @@ object RunEsPush {
       println("Application End")*/
       val system = ActorSystem()
       val supervisor = system.actorOf(Props(new ExtractionSupervisor(system)))
-      supervisor ! Start(0, supervisor)
+      val preProcessSupplierActor = system.actorOf(Props(new PreProcess(system)))
+      supervisor ! Start(0, supervisor, preProcessSupplierActor)
 
     } catch {
       case e: Exception => println("Exception: "+e.getMessage)
