@@ -3,6 +3,7 @@ package mongoToEs
 
 import akka.actor.{Props, ActorSystem}
 import tokenize.{Token, Tokenize, GetZPMainData}
+import uniqueExtract.DataCleaningController
 import uniqueExtraction.{PreProcess, Start, ExtractionSupervisor}
 
 /**
@@ -17,10 +18,14 @@ object RunEsPush {
       obj.populateLocationMaps()
       obj.getData()
       println("Application End")*/
-      val system = ActorSystem()
+
+      val obj = new DataCleaningController()
+      obj.getData(0)
+
+      /*val system = ActorSystem()
       val supervisor = system.actorOf(Props(new ExtractionSupervisor(system)))
       val preProcessSupplierActor = system.actorOf(Props(new PreProcess(system)))
-      supervisor ! Start(0, supervisor, preProcessSupplierActor)
+      supervisor ! Start(0, supervisor, preProcessSupplierActor)*/
 
     } catch {
       case e: Exception => println("Exception: "+e.getMessage)
