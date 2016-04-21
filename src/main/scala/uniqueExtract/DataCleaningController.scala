@@ -66,7 +66,7 @@ class DataCleaningController {
     var jsonList: List[JsObject] = List.empty[JsObject]
     println("List Length: "+objList.length)
     for(x <- objList) {
-      val obj = checkForuniqueWithoutCleaning(x, process)
+      val obj = cleanName(x, process)
       jsonList = obj :: jsonList
     }
     insertIntoMongo(jsonList, process)
