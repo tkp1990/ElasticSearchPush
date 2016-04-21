@@ -1,6 +1,7 @@
 package uniqueExtract
 
 import api.mongo.MongoConfig
+import dataCleaning.CleanData
 import play.api.Logger
 import play.api.libs.json.{JsObject, JsValue, Json}
 import uniqueExtraction.Constants._
@@ -98,6 +99,54 @@ class DataCleaningController {
           extractedFrom = "n2name"
         }
         Json.obj("mid" -> obj.id, "p_text" -> _name, "conname" -> obj.conName, "dataFrom" -> extractedFrom)
+    }
+  }
+
+  def cleanName(obj: ZPMainObj, process: String): JsObject = {
+    process match {
+      case SUPPLIER =>
+        var extractedFrom = ""
+        var _name = obj.supName
+        extractedFrom = "supname"
+        if(_name.isEmpty || _name.contains(LOGISTICS)){
+          _name = obj.n1Name
+          extractedFrom = "n1name"
+        } else if (_name.isEmpty) {
+          _name = obj.n2Name
+          extractedFrom = "n2name"
+        }
+        val bType = CleanData.checkIfStringHasBusinessType(_name)
+        val fName = bType match {
+          case Right(businessType) =>
+            _name.replace(businessType, "")
+          case Left(msg) =>
+            _name
+        }
+        val f2Name = PRE_PROCESS_REGEX.replaceAllIn(fName, " ")
+        val filteredName = f2Name.replace("  ", " ").trim
+        Json.obj("mid" -> obj.id, "p_text" -> filteredName, "supname" -> obj.supName, "dataFrom" -> extractedFrom)
+
+      case CONSIGNEE =>
+        var extractedFrom = ""
+        var _name = obj.conName
+        extractedFrom = "conname"
+        if(_name.isEmpty || _name.contains(LOGISTICS)){
+          _name = obj.n1Name
+          extractedFrom = "n1name"
+        } else if (_name.isEmpty) {
+          _name = obj.n2Name
+          extractedFrom = "n2name"
+        }
+        val bType = CleanData.checkIfStringHasBusinessType(_name)
+        val fName = bType match {
+          case Right(businessType) =>
+            _name.replace(businessType, "")
+          case Left(msg) =>
+            _name
+        }
+        val f2Name = PRE_PROCESS_REGEX.replaceAllIn(fName, " ")
+        val filteredName = f2Name.replace("  ", " ").trim
+        Json.obj("mid" -> obj.id, "p_text" -> filteredName, "conname" -> obj.conName, "dataFrom" -> extractedFrom)
     }
   }
 
