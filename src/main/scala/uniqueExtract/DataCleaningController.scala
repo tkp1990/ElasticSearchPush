@@ -19,7 +19,7 @@ class DataCleaningController {
     val limit = 10000
     var lastId = ""
 
-    while( finalCount < skip ) {
+    while( finalCount > skip ) {
       val mongoClient = MongoConfig.getMongoClient(LOCALHOST, MONGODB_PORT)
       try {
         val collection = MongoConfig.getCollection("datacleaning", "ZPmainCollection", mongoClient)
@@ -64,7 +64,7 @@ class DataCleaningController {
 
   def getJsonList(objList: List[ZPMainObj], process: String) = {
     var jsonList: List[JsObject] = List.empty[JsObject]
-    println("List Length: "+objList.length)
+    //println("List Length: "+objList.length)
     for(x <- objList) {
       val obj = cleanName(x, process)
       jsonList = obj :: jsonList
