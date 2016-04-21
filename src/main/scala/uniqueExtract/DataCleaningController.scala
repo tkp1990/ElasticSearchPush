@@ -13,6 +13,8 @@ import uniqueExtraction.{Insert, ZPMainObj}
  */
 class DataCleaningController {
 
+  var processedDataSet: Set[String] = Set.empty[String]
+
   def getData(_skip: Integer) = {
     val finalCount = MongoConfig.getCount(DB_NAME, COLLECTION_NAME)
     var skip, c = _skip
@@ -67,7 +69,10 @@ class DataCleaningController {
     //println("List Length: "+objList.length)
     for(x <- objList) {
       val obj = cleanName(x, process)
-      jsonList = obj :: jsonList
+      obj match {
+        case Some(jsObj) => jsonList = jsObj :: jsonList
+        case None => //Do nothing
+      }
     }
     insertIntoMongo(jsonList, process)
   }
@@ -102,7 +107,7 @@ class DataCleaningController {
     }
   }
 
-  def cleanName(obj: ZPMainObj, process: String): JsObject = {
+  def cleanName(obj: ZPMainObj, process: String): Option[JsObject] = {
     process match {
       case SUPPLIER =>
         var extractedFrom = ""
@@ -124,8 +129,12 @@ class DataCleaningController {
         }
         val f2Name = PRE_PROCESS_REGEX.replaceAllIn(fName, " ")
         val filteredName = f2Name.replace("  ", " ").trim
-        Json.obj("mid" -> obj.id, "p_text" -> filteredName, "supname" -> obj.supName, "dataFrom" -> extractedFrom)
-
+        if(!processedDataSet.contains(filteredName)){
+          processedDataSet = processedDataSet + filteredName
+          Some(Json.obj("mid" -> obj.id, "p_text" -> filteredName, "supname" -> obj.supName, "dataFrom" -> extractedFrom))
+        } else {
+          None
+        }
       case CONSIGNEE =>
         var extractedFrom = ""
         var _name = obj.conName
@@ -146,7 +155,12 @@ class DataCleaningController {
         }
         val f2Name = PRE_PROCESS_REGEX.replaceAllIn(fName, " ")
         val filteredName = f2Name.replace("  ", " ").trim
-        Json.obj("mid" -> obj.id, "p_text" -> filteredName, "conname" -> obj.conName, "dataFrom" -> extractedFrom)
+        if(!processedDataSet.contains(filteredName)){
+          processedDataSet = processedDataSet + filteredName
+          Some(Json.obj("mid" -> obj.id, "p_text" -> filteredName, "conname" -> obj.conName, "dataFrom" -> extractedFrom))
+        } else {
+          None
+        }
     }
   }
 
