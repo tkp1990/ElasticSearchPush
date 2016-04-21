@@ -56,9 +56,9 @@ class DataCleaningController {
       val n2Name = (suppData \ "n2name").as[String].toLowerCase()
       val obj = ZPMainObj(lastId, supName, conName, n1Name, n2Name)
       objList = obj :: objList
-      getJsonList(objList, SUPPLIER)
-      getJsonList(objList, CONSIGNEE)
     }
+    getJsonList(objList, SUPPLIER)
+    getJsonList(objList, CONSIGNEE)
     lastId
   }
 
